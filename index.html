@@ -1,7 +1,674 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+  <title>Hao Fang</title>
+  <style type="text/css">
+    @import url("http://fonts.googleapis.com/css?family=Source+Sans+Pro:300,300italic,600,600italic");
+
+    body {
+      font-family: Optima, Segoe, "Segoe UI", Candara, Calibri, Arial, sans-serif;
+      background-color: #CDCDCD;
+      font-size: 16px;
+    }
+
+    .content {
+      width: 880px;
+      padding: 25px 50px;
+      margin: 20px auto;
+      background-color: #fff;
+      box-shadow: 0px 0px 10px #999;
+      border-radius: 15px;
+    }
+
+    table {
+      padding: 5px;
+    }
+
+    table.pub_table,
+    td.pub_td1,
+    td.pub_td2 {
+      padding: 8px;
+      width: 870px;
+      border-spacing: 0 1em;
+      margin-top: -25px;
+    }
+
+    td.pub_td1 {
+      width: 50px;
+    }
+
+    td.pub_td1 img {
+      height: 120px;
+      width: 160px;
+    }
+
+    td.pub_td2 {}
+
+    div#container {
+      margin-left: auto;
+      margin-right: auto;
+      width: 850px;
+      text-align: left;
+      position: relative;
+      background-color: #FFF;
+    }
+
+    div#DocInfo {
+      color: #1367a7;
+      /*font-weight: lighter;*/
+      height: 200px;
+      font-size: 18px;
+    }
+
+    h4,
+    h3,
+    h2,
+    h1 {
+      color: #3B3B3B;
+    }
+
+    h2 {
+      font-size: 130%;
+    }
+
+    p {
+      color: #5B5B5B;
+      margin-bottom: 50px;
+    }
+
+    p.caption {
+      color: #9B9B9B;
+      text-align: left;
+      width: 600px;
+    }
+
+    p.caption2 {
+      color: #9B9B9B;
+      text-align: left;
+      width: 800px;
+    }
+
+    #header_img {
+      position: absolute;
+      top: 0px;
+      right: 0px;
+    }
+
+    a:link,
+    a:visited {
+      color: #1367a7;
+      text-decoration: none;
+    }
+
+    #sjtu_logo {
+      position: absolute;
+      left: 690px;
+      top: 14px;
+      width: 200px;
+      height: 20px;
+    }
+
+    #demo_pic {
+      position: relative;
+      left: 15px;
+      right: 10px;
+      height: 150px;
+      top: 10px;
+    }
+
+    #demo_pic2 {
+      position: relative;
+      left: 15px;
+      right: 10px;
+      height: 180px;
+      top: 10px;
+    }
+
+    @media screen and (min-width: 1200px) {
+      #school_logo {
+        position: absolute;
+        left: 700px;
+        height: 100px;
+      }
+      #research_logo {
+        position: absolute;
+        left: 700px;
+        height: 100px;
+      }
+      #other_logo {
+        position: absolute;
+        left: 700px;
+        height: 100px;
+      }
+      #square_logo {
+        position: absolute;
+        left: 650px;
+        height: 100px;
+      }
+    }
+
+    @media screen and (max-width: 1200px) {
+      #school_logo {
+        position: absolute;
+        visibility: hidden;
+        display: none;
+        left: 700px;
+        height: 100px;
+      }
+      #research_logo {
+        position: absolute;
+        visibility: hidden;
+        display: none;
+        left: 700px;
+        height: 100px;
+      }
+      #other_logo {
+        position: absolute;
+        visibility: hidden;
+        display: none;
+        left: 700px;
+        height: 100px;
+      }
+      #square_logo {
+        position: absolute;
+        left: 650px;
+        height: 100px;
+      }
+    }
+
+    table.pub_table tr {
+      outline: thin dotted #666666;
+      font-size: 17px;
+    }
+  </style>
+
+  <script type="text/javascript">
+
+    window.onload = choosePic;
+    var myPix = new Array("./about/me.jpg", "./about/xiu.jpg")
+    function choosePic() {
+      var randomNum = Math.floor(Math.random() * myPix.length);
+      document.getElementById("myPicture").src = myPix[randomNum];
+    };
+
+  </script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+
+
 <body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
+  <div class="content">
+    <div id="container">
+
+      <table>
+        <tbody>
+          <tr>
+            <td>
+              <img id="myPicture" src="./about/me.jpg" style="float:left; padding-right:10px" width="200px">
+            </td>
+            <td>
+              <div id="DocInfo">
+                <h1>Hao Fang</h1>
+                First Year M.Phil student
+                <br> Supervisor:
+                <a style="font-weight:500;" href="http://ese.nju.edu.cn/faculty.php?name=dusidan&lang=cn" target="_blank" rel="external">Prof. Sidan Du</a>
+                <br> Vision and Sensor Graphic (VISG)
+                <br> zutterhao
+                <i class="fa fa-at" aria-hidden="true"></i>gmail.com
+                <br>
+                <i class="fa fa-file-text" aria-hidden="true"></i>
+                <a href="./about/Curriculum Vitae.pdf">Curriculum Vitae</a>
+                <br>
+                <a href="https://github.com/fanghao6666" target="_blank" rel="external">
+                  <i class="fa fa-github" aria-hidden="true"></i> Github </a>
+                <a href="https://www.linkedin.com/in/yuliangxiu" target="_blank" rel="external">
+                  <i class="fa fa-linkedin-square" aria-hidden="true"></i> Linkedin </a>
+                <a href="https://www.zhihu.com/people/hao-ge-ge-8-49/activities" target="_blank" rel="external">
+                  <img src="./about/zhihu.ico" style="width:16px"> Zhihu </a>
+                <a href="https://www.kaggle.com/yuliangxiu" target="_blank" rel="external">
+                  <img src="./about/kaggle.png" style="width:16px"> Kaggle </a>
+                <a href="blog.html">
+                  <i class="fa fa-home" aria-hidden="true"></i> Blog </a>
+                <br>
+                <!-- Address: No.800 Dongchuan Road, Minhang District, Shanghai, China<br> -->
+                <br>
+              </div>
+              <br>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>About Me</h2>
+      I am currently a final year M.Phil. in
+      <a href="http://mvig.sjtu.edu.cn/member/index.html" target="_blank" rel="external">Machine Vision and Intelligence Group</a> at
+      <b>Shanghai Jiao Tong University</b>, advised by Prof.
+      <a href="http://mvig.sjtu.edu.cn/index.html" target="_blank" rel="external">Cewu Lu</a>. Previously, I got the B.Eng. in Research Center of HCI and VR at
+      <b>Shandong University</b>, advised by Prof.
+      <a href="http://202.194.15.185/sc_person_intro/zh/~luwang_hcivr" target="_blank"
+        rel="external">Lu Wang</a>. I spent 5 wonderful months as a research intern in Prof.
+      <a href="http://www.hao-li.com/" target="_blank"
+        rel="external">Hao Li</a>'s
+      <a href="http://vgl.ict.usc.edu" target="_blank" rel="external">Vision and Graphics Lab</a> at
+      <b>Institute for Creative Technologies</b> during the summer of 2018.
+      <!-- working with Postdoc <a href="http://junxnui.github.io/">Jun Xing</a>.  -->
+      My research interests are in
+      <b>Computer Vision</b> and
+      <b>Computer Graphics</b>.
+      <br>
+      <!-- 
+    <h2>Updates</h2>
+    [2017/02/27] <a href=""></a> <a href=""></a></br>
+   -->
+
+      <!-- <tr>
+        <td></td>
+        <td><strong>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="publications.html">Click here for the full publication list</a></td></td>
+    </tr> -->
+
+
+      <!-- 
+  <h2>Open-source codes</h2>
+  <ul>
+        <li><a href="">Title</a>: details</a>.
+    </ul>     -->
+      <h2>Education</h2>
+      <img id="school_logo" src="./about/sjtu_logo.png">
+      <h4> Shanghai Jiao Tong University, Shanghai, China (Sep 2016 - March 2019)</h4>
+      <ul>
+        <li>
+          <b>Master of Science(M.Sc.)</b> &emsp;Computer Science and Technology</li>
+        <li>Major Orientation: Computer Vision </li>
+        <li>Overall performance ranked: 12/127 &emsp; Academic Performance: 3.51/4.0</li>
+        <!-- <li>GPA: 3.2/4.0 </li> -->
+
+      </ul>
+      <img id="school_logo" src="./about/berkeley.png">
+      <h4> University of California, Berkeley (July 2016 - Aug 2016)</h4>
+      <ul>
+        <li>
+          <b>Exchange Student(3 months)</b>
+        </li>
+        <li>Project: Reinforcement Learning on Pacman Game
+          <iframe src="https://ghbtns.com/github-btn.html?user=yuliangxiu&repo=OpenCourse&type=star&count=true"
+            frameborder="0" scrolling="0" width="170px" height="20px"></iframe>
+        </li>
+      </ul>
+      <img id="school_logo" src="./about/ncku.png">
+      <h4>National Cheng Kung University, Tainan, Taiwan (Sep 2014 - Feb 2015)</h4>
+      <ul>
+        <li>
+          <b>Exchange Student(6 months)</b>
+        </li>
+        <li>Major Orientation: Computer Graphics </li>
+        <li>Academic Performance: 89.7/100 </li>
+
+      </ul>
+      <img id="school_logo" src="./about/sdu_logo.jpg">
+      <h4> Shandong University, Jinan, Shandong, China (Sep 2012 - July 2016)</h4>
+      <ul>
+        <li>
+          <b>Bachelor of Engineering(B.Eng.)</b> &emsp; Digital Media Technology </li>
+        <li>Training plan of Digital Media Technology mainly focus on CG, HCI, Game Design and Art</li>
+        <li>Overall performance ranked:
+          <strong style="color:red">1/53</strong> &emsp; Academic Performance: 89.05/100 </li>
+      </ul>
+      <!-- <h2>Overseas Experience</h2>
+      <img id="school_logo" src="./about/ict.png" />
+      <h4> Institute for Creative Technologies, USC (May 2018 - Sep 2018)</h4>
+      <ul>
+        <li>Position: Summer Research Intern at <a href="http://vgl.ict.usc.edu/">Vision and Graphics Lab</a></li>
+        <li>Supervisor: Prof.<a href="http://www.hao-li.com/"> Hao Li</a> and Dr. <a href="http://junxnui.github.io/">Jun Xing</a></li>
+        <li>Research Projects:  
+          <ul>
+            <li> Human Body Fitting and Reshaping </li>
+            <ul>
+              <li>Constructed a coarse-to-fine fitting pipeline: fit SMPL model on 3D human body scans and then deform the fitted SMPL model to body scans using Non-Rigid ICP</li>
+              <li>Designed and implemented a human body augmentor which enables us to transfer new pose to human body scans</li>
+            </ul>
+            <!-- <img id="demo_pic" src="./about/reshape.png">  -->
+      <!-- <li> Single-View Body Reconstruction</li> -->
+      <!-- </ul>
+        </li>
+      </ul>
+      <img id="school_logo" src="./about/berkeley.png" />
+      <h4> University of California, Berkeley (July 2016 - Aug 2016)</h4>
+      <ul>
+        <li>Summer Exchange Student</li>
+        <li>Project: Reinforcement Learning on Pacman Game<iframe src="https://ghbtns.com/github-btn.html?user=yuliangxiu&repo=OpenCourse&type=star&count=true" frameborder="0" scrolling="0" width="170px" height="20px"></iframe></li> 
+      </ul> -->
+
+      <h2>Research Experience</h2>
+      <img id="school_logo" src="./about/ict.png">
+      <h4> Institute for Creative Technologies, USC (May 2018 - Nov 2018)</h4>
+      <ul>
+        <li>Position: Summer Research Intern at
+          <a href="http://vgl.ict.usc.edu/" target="_blank" rel="external">Vision and Graphics Lab</a>
+        </li>
+        <li>Supervisor: Prof.
+          <a href="http://www.hao-li.com/" target="_blank" rel="external"> Hao Li</a> and Dr.
+          <a href="http://junxnui.github.io/" target="_blank" rel="external">Jun Xing</a>
+        </li>
+        <li>Research Projects:
+          <ul>
+            <li>
+              <b>Human Body Fitting and Reshaping</b>
+            </li>
+            <ul>
+              <li>Constructed a coarse-to-fine fitting pipeline: fit SMPL body model to 3D human body scans followed by detailed
+                non-rigid deformation</li>
+              <li>Designed and implemented a human body augmentor to generate different poses on 3D human body scans</li>
+            </ul>
+            <li>
+              <b>Novel-View Synthesis from a Single RGB Image</b>
+            </li>
+            <ul>
+              <li>Reconstruct 3D human body from a single image via deforming fitted SMPL model </li>
+              <li>Develop a GAN-based network to synthesize novel views conditioned on frontly textured model</li>
+            </ul>
+
+            <img id="demo_pic" src="./about/reshaper.jpg">
+            <img id="demo_pic" src="./about/novel-view.png">
+          </ul>
+        </li>
+      </ul>
+      <h4>Machine Vision and Intelligence Group, Shanghai Jiao Tong University (Sep 2016 - March 2019)</h4>
+      <img id="research_logo" src="./about/mvig.png">
+      <ul>
+        <li>Advisor: Research Professor
+          <a href="http://mvig.sjtu.edu.cn/index.html" target="_blank" rel="external">Cewu Lu</a>
+        </li>
+        <li>Research Projects:
+          <ul>
+            <li>
+              <strong> AlphaPose</strong> Real-Time Multi-Person Pose Estimation and Tracking
+              <iframe src="https://ghbtns.com/github-btn.html?user=MVIG-SJTU&repo=AlphaPose&type=star&count=true"
+                frameborder="0" scrolling="0" width="170px" height="20px"></iframe>
+            </li>
+            <li>
+              <strong>PoseFlow</strong> Efficient Online Pose Tracking(BMVC'18)
+              <iframe src="https://ghbtns.com/github-btn.html?user=yuliangxiu&repo=PoseFlow&type=star&count=true"
+                frameborder="0" scrolling="0" width="170px" height="20px"></iframe>
+            </li>
+            <li>
+              <strong>MobilePose</strong> Tiny 2D pose estimator on the mobile device
+              <iframe src="https://ghbtns.com/github-btn.html?user=yuliangxiu&repo=MobilePose-pytorch&type=star&count=true"
+                frameborder="0" scrolling="0" width="170px" height="20px"></iframe>
+            </li>
+            <li>
+              <strong>PoseHD</strong> Boosting human detectors using human pose information(AAAI'18)</li>
+            <img id="demo_pic" src="./about/alphapose.gif">
+            <img id="demo_pic" src="./about/posetrack.gif">
+
+          </ul>
+        </li>
+      </ul>
+      <!-- <h4> Institute of Industrial Design, Zhejiang University(Aug 2015 - Sep 2015)</h4>
+     <img id="research_logo" src="zd.png" />
+      <ul>
+      <li>Research Topic: <ul><li> Affection Computing of Music</li></ul></li>
+      <li>Advisor: Research Professor <a href="http://mypage.zju.edu.cn/en/zhangkejun">Kejun Zhang</a></li>
+      </ul>  -->
+      <h4> Research Center of HCI&VR, Shandong University (Sep 2013 - July 2016)</h4>
+      <img id="research_logo" src="./about/erc.png">
+      <ul>
+        <li>Advisor: Associate Professor
+          <a href="http://vr.sdu.edu.cn/~wanglu/index.htm" target="_blank" rel="external">Lu Wang</a>
+        </li>
+        <li>Research Projects:
+          <ul>
+            <li>
+              <strong>Angry Penguin</strong> iOS pinball game supports collision detection based on Cocos2D</li>
+            <li>
+              <strong>Model Sketch</strong> iOS casual 3D modeling app which supports modeling with two fingers</li>
+            <li>
+              <strong>Car Racing</strong> Racing game based on OpenGL supports various tracks and perspectives </li>
+            <!-- <iframe src="https://ghbtns.com/github-btn.html?user=yuliangxiu&repo=OpenCourse&type=star&count=true" frameborder="0" scrolling="0" width="170px" height="20px"></iframe></li>  -->
+            <img id="demo_pic2" src="./about/modelsketch.gif">
+            <img id="demo_pic2" src="./about/angrybird.gif">
+            <img id="demo_pic2" src="./about/go.gif">
+          </ul>
+        </li>
+      </ul>
+      <h2>Teaching Experience</h2>
+      <ul>
+        <li>Head TA &emsp;
+          <a href="http://mvig.sjtu.edu.cn/teaching/index.html" target="_blank" rel="external">CS348 Computer Vision</a>&emsp;Fall2017&emsp; Shanghai Jiao Tong University </li>
+      </ul>
+      <!-- <h2>OpenCourse Achievements</h2>
+      <img id="square_logo" src="coursera.jpeg" />
+      <ul>
+        <li>
+          <b>DeepLearning.ai(<a href="https://www.coursera.org/account/accomplishments/specialization/certificate/E4V6D6F9TG29"><i class="fa fa-certificate" style="color:gold" aria-hidden="true"></i>Specialization Cerfiticate</a>)</b>
+        </li>
+        <ul>
+          <li>Neural Networks and Deep Learning
+            <a href='https://www.coursera.org/account/accomplishments/certificate/7GQN63WCFF4A'>
+            [Certificate]</a>
+          </li>
+          <li>Improving Deep Neural Networks
+            <a href='https://www.coursera.org/account/accomplishments/certificate/J3C8B3V4XLMC'>
+            [Certificate]</a>
+          </li>
+          <li>Structuring Machine Learning Projects
+            <a href='https://www.coursera.org/account/accomplishments/certificate/SZ8UTD5FFJ48'>
+            [Certificate]</a>
+          </li>
+          <li>Convolutional Neural Networks
+            <a href='https://www.coursera.org/account/accomplishments/certificate/HAM943MFFK3J'>
+            [Certificate]</a>
+          </li>
+          <li>Sequence Models
+            <a href='https://www.coursera.org/account/accomplishments/certificate/MV3J3CY5UNHM'>
+            [Certificate]</a>
+          </li>
+        </ul>
+        <li>
+          <b>Stanford University</b>
+        </li>
+        <ul>
+          <li>CS229 Machine Learning
+            <a href='https://www.coursera.org/account/accomplishments/certificate/C9U2X3HYDM8Y'> [Certificate]</a>
+            <a href='https://github.com/YuliangXiu/coursera_ml_Ng'>[Github]</a>
+          </li>
+          <li>CS231n Convolutional Neural Networks for Visual Recognition
+            <a href='https://github.com/YuliangXiu/cs231n'> [Github]</a>
+          </li>
+        </ul>
+
+      </ul>  -->
+
+      <h2>Publications</h2>
+      <table class="pub_table">
+        <tbody>
+          <!-- <tr>
+                <td class="pub_td1">
+                  <img src="./about/cvpr.jpg">
+                </td>
+                <td class="pub_td2">
+                  <strong>Yuliang Xiu</strong>,
+                  <a href="http://junxnui.github.io">Jun Xing</a>, <a href="https://zeng.science">Zeng Huang</a>, <a href="http://mvig.org">Cewu Lu</a>, <a href="http://hao-li.com">Hao Li</a>
+                  <br>
+                  <b>We proposed a novel pipeline to synthesize human body multi views based on only one single RGB image</b>
+                  <br>
+                  <i>Submission to CVPR'19</i>
+                  <br>
+                </td>
+              </tr>  -->
+          <tr>
+            <td class="pub_td1">
+              <img src="./about/posetrack.gif">
+            </td>
+            <td class="pub_td2">
+              <strong>Yuliang Xiu</strong>,
+              <a href="http://jeff-leaf.site/" target="_blank" rel="external">Jiefeng Li</a>, Haoyu Wang, Yinghong Fang,
+              <a href="http://mvig.org" target="_blank" rel="external">Cewu Lu</a>
+              <br>
+              <b>Pose Flow: Efficient Online Pose Tracking</b>
+              <br>
+              <i>British Machine Vision Conference (
+                <strong style="color:brown">BMVC 2018</strong>)</i>
+              <br>[
+              <a href="https://arxiv.org/abs/1802.00977" target="_blank" rel="external">Paper</a>][
+              <a href="https://mp.weixin.qq.com/s/-EU4jTElNll9MQomjuqFXA" target="_blank">News</a>][
+              <a href="https://github.com/MVIG-SJTU/AlphaPose/tree/master/PoseFlow" target="_blank">Code</a>][
+              <a href="https://v.qq.com/x/page/w0545s9kg3q.html" target="_blank">Demo</a>]
+            </td>
+          </tr>
+          <tr>
+            <td class="pub_td1">
+              <img src="./about/tu.png">
+            </td>
+            <td class="pub_td2">
+              <a href="http://zhijianliu.com/" target="_blank" rel="external">Zhijian Liu</a>, Bowen Pan,
+              <strong>Yuliang Xiu</strong>,
+              <a href="http://mvig.org" target="_blank" rel="external">Cewu Lu</a>
+              <br>
+              <b>PoseHD: Boosting Human Detectors using Human Pose Information</b>
+              <br>
+              <i>AAAI Conference on Artificial Intelligence (
+                <strong style="color:brown">AAAI 2018</strong>)</i>
+              <br>[
+              <a href="https://www.aaai.org/ocs/index.php/AAAI/AAAI18/paper/download/16693/16311" target="_blank" rel="external">Paper</a>]
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <!--  <tr>
+        <td><strong>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<a href="publications.html">Click here for the full publication list</a></td></td>
+    </tr> -->
+      <!-- <h2>Projects</h2>  
+  <table class="pub_table" >
+  <tbody>
+       <tr>
+           <td class="pub_td1"><img src=></td>
+        </td></tr> 
+        </tbody>
+      </table>
+  -->
+      <!-- <h2>Internship Experience</h2>
+      <img id="other_logo" src="./about/classbox.png" />
+      <h4> ClassBox, Beijing, China (Sep 2015 - Feb 2016)</h4>
+      <ul>
+        <li>Position: Back-end Engineer</li>
+        <li>Mentor:
+          <a href='http://cs.stanford.edu/people/shiweis/'>Shiwei Song</a>
+          <a href='https://www.linkedin.com/in/summerleng/'>, Xia Leng</a>
+        </li>
+      </ul>
+      <img id="other_logo" src="./about/makerfunc.jpg" />
+      <h4> MakerFunc, Suzhou, China (July 2017 - Aug 2017)</h4>
+      <ul>
+        <li>Position: Machine Learning Lecturer</li>
+        <li>Organizer:
+          <a href='http://www.makerfunc.xyz/about.html'>Zikai Wang</a>
+        </li>
+        <li>Video:
+          <i class="fa fa-youtube-play" aria-hidden="true"></i>
+          <a href='https://www.youtube.com/watch?v=cHp2ohtXPbc'> MakerFunc 2017</a>
+        </li>
+      </ul> -->
+      <h2>Scholarships</h2>
+      <ul>
+        <li>
+          <b>Oct 2017</b> Excellent Graduate Student Scholarship (Top 10% in the computer science department)</li>
+        <li>
+          <b>Aug 2015</b> National Scholarship (The highest honor for undergraduates, top 2% nationwide)</li>
+        <li>
+          <b>Jun 2015</b> Dean's List Award (Baoquan Chen Scholarship, Top 5 of all grades in the computer science department)</li>
+        <li>
+          <b>Dec 2013 & Dec 2014 & Dec 2015</b> First Prize Scholarship (Top 6% in China,
+          <strong style="color:red">three-year continuous</strong>)</li>
+      </ul>
+      <h2>Honors and Awards</h2>
+      <ul>
+        <li>
+          <b>Feb 2018</b> 1st in Task2 and 2nd in Task3 of PoseTrack Challenge [MVIG, PoseFlow]</li>
+        <li>
+          <b>Dec 2017</b> AI Challenger - Keypoint Estimation (OK-Anyway: 0.53224, Top10 Winner)</li>
+        <li>
+          <b>Nov 2017</b> Second Class Winner in 2017 National Postgraduate
+          <strong style="color:#00CC00">Mathematical Contest</strong> in Modeling (NPMCM)</li>
+        <li>
+          <b>June 2017</b> Silver Winner of Quora Question Pairs Competition in
+          <strong style="color:#723E84">Kaggle</strong> (Global top 4%, 121/3307)</li>
+        <li>
+          <b>June 2017</b> Copper Winner of YouTube-8M Video Understanding Challenge in
+          <strong style="color:#723E84">Kaggle</strong> (Global top 14%, 92/655)</li>
+        <li>
+          <b>Nov 2016</b> Second Class Winner in 2016 National Postgraduate
+          <strong style="color:#00CC00">Mathematical Contest</strong> in Modeling (NPMCM)</li>
+        <li>
+          <b>May 2015</b> Outstanding Winner in 11th Challenge Cup National College Students Business Plan Competition</li>
+        <li>
+          <b>Apr 2015</b> Meritorious Winner in 2015
+          <strong style="color:#00CC00">Mathematical Contest</strong> in Modeling (MCM, Global top 9%)</li>
+        <li>
+          <b>Apr 2014</b> Silver Winner in Qilu College Students Business Plan Competition of Shandong Province</li>
+      </ul>
+      <!-- <h2>Professional activities</h2>
+  <ul>
+      <li>Organizer of the <a href="">activity</a> at someplace.</li>
+  </ul>        
+  <h2>Talks</h2>
+  <ul>
+      <li><a href="">title </li>
+  </ul>
+  <h2>Media coverage</h2>
+  <ul>
+      <li>news<a href="">news source</a>.</li>
+  </ul>
+  <h2>Collaborators</h2>
+  <ul>
+      <li>I am fortunate to work with these great people: <a href="">Cewu Lu</a>(SJTU).</li>
+  </ul> -->
+
+      <h2>Personal interests</h2>
+      <ul>
+        <li>
+          <strong>Writing</strong>:
+          <ul>
+            <li>
+              <a href="https://www.zhihu.com/people/yuliangxiu" target="_blank" rel="external">
+                <img src="./about/zhihu.ico" style="width:16px">
+                <strong>Zhihu</strong>
+              </a> 10k followers, 60k approval, 11k thanks, 24k favorites</li>
+            <li>
+              <a href="blog.html">
+                <i class="fa fa-home" aria-hidden="true"></i>
+                <strong> Blog </strong>
+              </a> I ever wrote a widespread series of essays about Taiwan.
+              <br>
+            </li>
+          </ul>
+        </li>
+        <li>
+          <strong>Kaggle</strong>: I am an
+          <a href="https://www.kaggle.com/yuliangxiu" target="_blank" rel="external">
+            <strong style="color:#723E84">Expert player</strong>
+          </a> of Kaggle with 1 silver medal and 1 copper medal (Global top 2.8%, 1711/60430).</li>
+        <li>
+          <strong>Debate</strong>: I served as chief summary speaker in debate team of the college of software engineering at Shandong
+          University for three years, we made the best achievement in software engineering college's history (Copper Medal,
+          rank 8 among 32 departments) .</li>
+        <li>
+          <strong>Riding</strong>: I spend 9 days riding around Taiwan Island(about 990KM), Here are some of my
+          <a href="http://xiuyuliang.cn/" target="_blank" rel="external">
+            <i class="fa fa-bicycle" aria-hidden="true"></i> travels</a> .</li>
+        <!-- <li><a href="book.html">books</a>, <a href="">sports</a>, <a href="">sports</a> (former <a href="">activity</a>): influenced by someone</a></li>  -->
+        <!-- <!-- </ul> -->
+        <!-- </div> -->
+        <div align="center">
+          <strong>This page has been visited for
+            <a href="https://www.easycounter.com/" target="_blank" rel="external">
+              <img src="https://www.easycounter.com/counter.php?yuliang" border="0" alt="HTML Counter">
+            </a>times</strong>
+        </div>
+        <script type="text/javascript" id="clustrmaps" src="//cdn.clustrmaps.com/map_v2.js?cl=bd832c&w=300&t=n&d=SYiKubZXvXK2RYT1Dv_VJu0CnQLLdGvjJ2ToVWLLMPI&co=ffffff&cmo=3acc3a&cmn=ff5353&ct=ffffff"></script>
+      </ul>
+    </div>
+  </div>
 </body>
+
 </html>
