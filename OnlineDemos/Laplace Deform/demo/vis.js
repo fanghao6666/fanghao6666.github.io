@@ -231,7 +231,7 @@ require("../index.js").load(function(initModule, prepareDeform, doDeform, freeMo
 
   */
   var container = document.createElement('div')
-  var str = `<a href="https://github.com/mikolalysenko/laplacian-deformation"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/82b228a3648bf44fc1163ef44c62fcc60081495e/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_red_aa0000.png"></a>`
+  var str = `<a href="https://github.com/fanghao6666/LaplacianDeform"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/82b228a3648bf44fc1163ef44c62fcc60081495e/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_red_aa0000.png"></a>`
 
   container.innerHTML = str
   document.body.appendChild(container)
@@ -255,7 +255,7 @@ require("../index.js").load(function(initModule, prepareDeform, doDeform, freeMo
   ], {theme: 'light', position: 'top-right'}).on('input', data => { guiParams = data })
 
   var par = document.createElement("h3")
-  par.innerHTML = "Click the white region and drag to deform the mesh. Hold shift-key and press , to select a new region of deformation. This takes a while though."
+  par.innerHTML = "Click the white region and drag to deform the mesh. 111Hold shift-key and press , to select a new region of deformation. This takes a while though."
 
   var div = document.createElement('div')
   div.style.cssText = 'color: #000; position: absolute; bottom: 0px; width: 300; padding: 5px; z-index:100;'

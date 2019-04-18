@@ -256,7 +256,7 @@ require("../index.js").load(function(initModule, prepareDeform, doDeform, freeMo
   ], {theme: 'light', position: 'top-right'}).on('input', data => { guiParams = data })
 
   var par = document.createElement("h3")
-  par.innerHTML = "Click the white region and drag to deform the mesh. Hold shift-key and press , to select a new region of deformation. This takes a while though."
+  par.innerHTML = "<span style='font-size:18px; color:green;'>1. Click the white region and drag to deform the mesh. <br>2. Hold shift-key and press to select a new region of deformation. <br>3. Limited by computing speed,deformation may take a while :)</span>"
 
   var div = document.createElement('div')
   div.style.cssText = 'color: #000; position: absolute; bottom: 0px; width: 300; padding: 5px; z-index:100;'
