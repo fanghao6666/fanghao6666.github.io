@@ -1,0 +1,383 @@
+<!--
+// Tihs is a simple cloth simulation Demo
+// @author: zutterhao
+// @date : 2019/4/26
+
+// @link : https://github.com/fanghao6666/cloth-simulation
+-->
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - cloth simulation</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000;
+				color: #000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				position: absolute;
+				padding: 10px;
+				width: 100%;
+        color: rgb(195, 0, 255);
+        font-size: 25px;
+				text-align: center;
+			}
+
+      #help {
+        text-align: left;
+        width: 20%;
+        color:black;
+        font-size: 15px;
+      }
+
+			a {
+				text-decoration: underline;
+				cursor: pointer;
+			}
+
+		</style>
+	</head>
+
+	<body>
+		<div id="info">Cloth Simulation Demo<br/>
+			<a onclick="wind = !wind;">Wind</a> |
+      <a onclick="sphere.visible = !sphere.visible;">Ball</a> |
+      <a onclick="issimulate = !issimulate;">Simulate</a>|
+      <a onclick="togglePins();">Pins</a>
+
+      <div id="help">
+        <ul>
+          <li>Wind<ul>
+              <li>Click "Wind"  to enable and disalbe wind simulation</li>
+              <li>Use "Wind Direction" to change the direction of wind</li>
+            </ul>
+          </li>
+          <li>Ball<ul>
+              <li>Click "Ball" to add a ball to scene(collsion simulation)</li>
+              <li>Use "Ball Position" controls to change ball's position</li>
+            </ul>
+          </li>
+          <li>Simulate<ul>
+              <li>Click "Simulate" to enable and disable simulate</li>
+            </ul>
+          </li>
+          <li>Pins<ul>
+              <li>Select some points to hang the cloth</li>
+            </ul>
+          </li>
+          <li>Link<ul>
+              <a href="https://github.com/fanghao6666/cloth-simulation" target="_blank" rel="noopener">fanghao6666</a>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+    
+
+		<script src="js/three.js"></script>
+		<script src="js/WebGL.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/stats.min.js"></script>
+    <script src="js/Cloth.js"></script>
+    <script src="js/dat.gui.min.js"></script>
+
+		<script>
+
+			/* testing cloth simulation */
+
+			var pinsFormation = [];
+			var pins = [ 6 ];
+
+			pinsFormation.push( pins );
+
+			pins = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ];
+			pinsFormation.push( pins );
+
+			pins = [ 0 ];
+			pinsFormation.push( pins );
+
+			pins = []; // cut the rope ;)
+			pinsFormation.push( pins );
+
+			pins = [ 0, cloth.w ]; // classic 2 pins
+			pinsFormation.push( pins );
+
+			pins = pinsFormation[ 1 ];
+
+
+			function togglePins() {
+
+				pins = pinsFormation[ ~~ ( Math.random() * pinsFormation.length ) ];
+
+			}
+
+			if ( WEBGL.isWebGLAvailable() === false ) {
+
+				document.body.appendChild( WEBGL.getWebGLErrorMessage() );
+
+			}
+
+			var container, stats;
+			var camera, scene, renderer;
+
+			var clothGeometry;
+			var sphere;
+			var object;
+
+			init();
+			animate();
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				// scene
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0xcce0ff );
+				scene.fog = new THREE.Fog( 0xcce0ff, 500, 10000 );
+
+				// camera
+
+				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.set( 1000, 50, 1500 );
+
+				// lights
+
+				scene.add( new THREE.AmbientLight( 0x666666 ) );
+
+				var light = new THREE.DirectionalLight( 0xdfebff, 1 );
+				light.position.set( 50, 200, 100 );
+				light.position.multiplyScalar( 1.3 );
+
+				light.castShadow = true;
+
+				light.shadow.mapSize.width = 1024;
+				light.shadow.mapSize.height = 1024;
+
+				var d = 300;
+
+				light.shadow.camera.left = - d;
+				light.shadow.camera.right = d;
+				light.shadow.camera.top = d;
+				light.shadow.camera.bottom = - d;
+
+				light.shadow.camera.far = 1000;
+
+        scene.add( light );
+        
+        // GUI BAR 2019/4/26
+        var gui = new dat.GUI();
+        var f1 = gui.addFolder('Ball Position');
+        f1.add(ballPosition, 'y', -100, 50);
+        var f2 = gui.addFolder('Wind Direction');
+        f2.add(windForce, 'x', -10, 10);
+        f2.add(windForce, 'y', -10, 10);
+        f2.add(windForce, 'z', -10, 10);
+      
+  
+
+				// cloth material
+
+        var loader = new THREE.TextureLoader();
+        var clothTexture;
+        if(texture == 'NJU'){
+            clothTexture = loader.load('textures/NJU.png');
+        }
+        if (texture == 'XDD') {
+           clothTexture = loader.load('textures/XDD.png');
+        }
+				
+				clothTexture.anisotropy = 16;
+
+				var clothMaterial = new THREE.MeshLambertMaterial( {
+					map: clothTexture,
+					side: THREE.DoubleSide,
+					alphaTest: 0.5
+				} );
+
+				// cloth geometry
+
+				clothGeometry = new THREE.ParametricBufferGeometry( clothFunction, cloth.w, cloth.h );
+
+				// cloth mesh
+
+				object = new THREE.Mesh( clothGeometry, clothMaterial );
+				object.position.set( 0, 0, 0 );
+				object.castShadow = true;
+				scene.add( object );
+
+				object.customDepthMaterial = new THREE.MeshDepthMaterial( {
+
+					depthPacking: THREE.RGBADepthPacking,
+					map: clothTexture,
+					alphaTest: 0.5
+
+				} );
+
+				// sphere
+
+				var ballGeo = new THREE.SphereBufferGeometry( ballSize, 32, 32 );
+        var ballMaterial = new THREE.MeshLambertMaterial();
+        var ballMaterial = new THREE.MeshBasicMaterial({color : 0xFF61CC});
+
+				sphere = new THREE.Mesh( ballGeo, ballMaterial );
+				sphere.castShadow = true;
+				sphere.receiveShadow = true;
+        scene.add( sphere );
+
+				// ground
+
+				var groundTexture = loader.load( 'textures/grasslight-big.jpg' );
+				groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
+				groundTexture.repeat.set( 25, 25 );
+				groundTexture.anisotropy = 16;
+
+				var groundMaterial = new THREE.MeshLambertMaterial( { map: groundTexture } );
+
+				var mesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( 20000, 20000 ), groundMaterial );
+				mesh.position.y = - 250;
+				mesh.rotation.x = - Math.PI / 2;
+				mesh.receiveShadow = true;
+				scene.add( mesh );
+
+				// poles
+
+				var poleGeo = new THREE.BoxBufferGeometry( 5, 375, 5 );
+				var poleMat = new THREE.MeshLambertMaterial();
+
+				var mesh = new THREE.Mesh( poleGeo, poleMat );
+				mesh.position.x = - 125;
+				mesh.position.y = - 62;
+				mesh.receiveShadow = true;
+				mesh.castShadow = true;
+				scene.add( mesh );
+
+				var mesh = new THREE.Mesh( poleGeo, poleMat );
+				mesh.position.x = 125;
+				mesh.position.y = - 62;
+				mesh.receiveShadow = true;
+				mesh.castShadow = true;
+				scene.add( mesh );
+
+				var mesh = new THREE.Mesh( new THREE.BoxBufferGeometry( 255, 5, 5 ), poleMat );
+				mesh.position.y = - 250 + ( 750 / 2 );
+				mesh.position.x = 0;
+				mesh.receiveShadow = true;
+				mesh.castShadow = true;
+				scene.add( mesh );
+
+				var gg = new THREE.BoxBufferGeometry( 10, 10, 10 );
+				var mesh = new THREE.Mesh( gg, poleMat );
+				mesh.position.y = - 250;
+				mesh.position.x = 125;
+				mesh.receiveShadow = true;
+				mesh.castShadow = true;
+				scene.add( mesh );
+
+				var mesh = new THREE.Mesh( gg, poleMat );
+				mesh.position.y = - 250;
+				mesh.position.x = - 125;
+				mesh.receiveShadow = true;
+				mesh.castShadow = true;
+				scene.add( mesh );
+
+				// renderer
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				container.appendChild( renderer.domElement );
+
+				renderer.gammaInput = true;
+				renderer.gammaOutput = true;
+
+				renderer.shadowMap.enabled = true;
+
+				// controls
+				var controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls.maxPolarAngle = Math.PI * 0.5;
+				controls.minDistance = 1000;
+				controls.maxDistance = 5000;
+
+				// performance monitor
+
+				stats = new Stats();
+				container.appendChild( stats.dom );
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				sphere.visible = ! true;
+
+			}
+
+			//
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				var time = Date.now();
+
+				//var windStrength = Math.cos( time / 7000 ) * 20 + 40;
+        //windForce.set( Math.sin( time / 2000 ), Math.cos( time / 3000 ), Math.sin( time / 1000 ) )
+        
+				windForce.normalize()
+				windForce.multiplyScalar( windStrength );
+
+        if(issimulate)
+        {
+          simulate(time);
+        }
+
+				render();
+				stats.update();
+
+			}
+
+			function render() {
+
+				var p = cloth.particles;
+
+				for ( var i = 0, il = p.length; i < il; i ++ ) {
+
+					var v = p[ i ].position;
+
+					clothGeometry.attributes.position.setXYZ( i, v.x, v.y, v.z );
+
+				}
+
+				clothGeometry.attributes.position.needsUpdate = true;
+
+				clothGeometry.computeVertexNormals();
+
+        sphere.position.copy( ballPosition );
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
