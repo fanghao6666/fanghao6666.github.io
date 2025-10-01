@@ -1,0 +1,194 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>C++内存管理 | Haony's Site</title><meta name="author" content="Haony Fang"><meta name="copyright" content="Haony Fang"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="最近在学习侯捷老师的《C++内存管理》课程，对C++底层的内存管理机制有了更深的一些理解，这里记录一下主要的学习内容和相关问题。 C++程序里使用memory的多种方式如上图所示，C++有多种直接或者间接控制内存的方式，相关的总结如下：这里主要区分的是 new 和 operator new  new是C++的表达式(expressions),也就是C++在编译的时候会将表达式展开为多行代码语句，因">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++内存管理">
+<meta property="og:url" content="http://example.com/2025/10/01/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/index.html">
+<meta property="og:site_name" content="Haony&#39;s Site">
+<meta property="og:description" content="最近在学习侯捷老师的《C++内存管理》课程，对C++底层的内存管理机制有了更深的一些理解，这里记录一下主要的学习内容和相关问题。 C++程序里使用memory的多种方式如上图所示，C++有多种直接或者间接控制内存的方式，相关的总结如下：这里主要区分的是 new 和 operator new  new是C++的表达式(expressions),也就是C++在编译的时候会将表达式展开为多行代码语句，因">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/img/sky.jpg">
+<meta property="article:published_time" content="2025-10-01T00:27:47.000Z">
+<meta property="article:modified_time" content="2025-10-01T02:52:47.258Z">
+<meta property="article:author" content="Haony Fang">
+<meta property="article:tag" content="C++">
+<meta property="article:tag" content="技术">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/img/sky.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "C++内存管理",
+  "url": "http://example.com/2025/10/01/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/",
+  "image": "http://example.com/img/sky.jpg",
+  "datePublished": "2025-10-01T00:27:47.000Z",
+  "dateModified": "2025-10-01T02:52:47.258Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Haony Fang",
+      "url": "http://example.com"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2025/10/01/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'C++内存管理',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/sky.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/haony.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">2</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">4</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 更多</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 图书</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/sky.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Haony's Site</span></a><a class="nav-page-title" href="/"><span class="site-name">C++内存管理</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 更多</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 图书</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">C++内存管理</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-10-01T00:27:47.000Z" title="发表于 2025-10-01 08:27:47">2025-10-01</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-10-01T02:52:47.258Z" title="更新于 2025-10-01 10:52:47">2025-10-01</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/C/">C++</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>最近在学习侯捷老师的<a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=N27j6snKcxI&list=PLTcwR9j5y6W2eH37R2_4oEO4Y0tksot56">《C++内存管理》</a>课程，对C++底层的内存管理机制有了更深的一些理解，这里记录一下主要的学习内容和相关问题。</p>
+<h2 id="C-程序里使用memory的多种方式"><a href="#C-程序里使用memory的多种方式" class="headerlink" title="C++程序里使用memory的多种方式"></a>C++程序里使用memory的多种方式</h2><p><img src="/./images/C++memory/usage.png" alt="C++控制内存方式"><br>如上图所示，C++有多种直接或者间接控制内存的方式，相关的总结如下：<br><img src="/./images/C++memory/usageTable.png"><br>这里主要区分的是 <strong>new</strong> 和 <strong>operator new</strong></p>
+<ul>
+<li>new是C++的表达式(expressions),也就是C++在编译的时候会将表达式展开为多行代码语句，因为是表达式，所以new<strong>不可以重载</strong>。</li>
+<li>operator new是C++的函数，所以该函数是<strong>可以被重载</strong>的。</li>
+</ul>
+<p>下图是C++的new expression的内部逻辑<br><img src="/./images/C++memory/newexpression.png"><br>可以看到针对new expression，编译器实际在背后做了以下几件事：</p>
+<ul>
+<li>首先通过operator new申请一块内存，内存大小根据complex类来定。</li>
+<li>然后将申请的内存指针强制转换为目标类型指针，这里的是Complex*类型。</li>
+<li>最后调用目标类型complex的构造函数构造对象。这里注意的是：通过pc-&gt;Complex::Complext(1,2)这种方式调用构造函数，<strong>只有编译器可以做，用户是不能这么做的</strong>。</li>
+</ul>
+<p>与new表达式对应的delete表达式的内部顺序则相反：首先调用Complex的析构函数，然后再调用operator delete释放内存。<br><img src="/./images/C++memory/deleteexpression.png"></p>
+<h3 id="Array-New-和Array-Delete"><a href="#Array-New-和Array-Delete" class="headerlink" title="Array New 和Array Delete"></a>Array New 和Array Delete</h3><p><img src="/./images/C++memory/arraynew.png"><br>上图是array new的内存分配的逻辑，当使用array new分配一块内存，在这个内存的头部会记录一些cookie数据，包含数组的数量等，然后才是所有的元素的内存区。<strong>对于array new分配的内存，需要用array delete来释放</strong>。否则会造成<em><strong>内存泄漏</strong></em>。</p>
+<blockquote>
+<p>Q: 为什么array new分配的内存使用delete会发生内存泄漏？原因是什么？什么情况下不会发生泄漏？<br>A: delete和delete[]的区别在于delete[]会依次的调用每一个元素的析构函数，然后再释放内存，而delete则是只会调用第一个元素的析构函数，再释放内存。需要注意的是，delete和delete[]释放内存的阶段都是一样的，会将所有的元素的内存都释放掉，这部分都是交给底层的operator delete实现的，内存头部的cookie会记录整个内存的大小，因此可以全部释放。上文说的造成内存泄漏指的是调用析构函数阶段会造成内存泄漏。因为delete只会调用第一个元素的析构函数，其余的元素的析构函数是不会被调用的，如果这些元素在析构函数里会释放自身持有的内存，那么就会造成内存泄漏，如果析构函数里不需要释放内存，那么就不会有内存泄漏问题。<br>因此使用array new一个int的数组，然后调用delete来释放的话，是不会有内存泄漏的。</p>
+</blockquote>
+<h2 id="C-应用程序分配内存的途径"><a href="#C-应用程序分配内存的途径" class="headerlink" title="C++应用程序分配内存的途径"></a>C++应用程序分配内存的途径</h2><p><img src="/./images/C++memory/allocmemory.png"><br> 以上是C++应用程序的内存分配的途径，正常情况下，使用new表达式调用的是全局的::operator new函数，前面提到，operator new是函数表达式，是可以重载的，如果我们在类内部重载了operator new的话，那么new这个类的对象的时候就会调用重载的operator new而不是全局的。一下是一个重载的示例：<br> <img src="/./images/C++memory/overridenew.png"></p>
+<blockquote>
+<p>需要注意的点是，最好不要重载全局的operator new，因为这个影响太广了，所以直接使用默认的operator就好。</p>
+</blockquote>
+<h3 id="operator-new"><a href="#operator-new" class="headerlink" title="operator new"></a>operator new</h3><p> 上文提到new表达式实际是调用operator new来分配内存的，operator底层又是调用的malloc来实现的，如下右图所示，在operator new内部会循环调用malloc来分配内存，如果分配失败，则会尝试调用_callnewh来处理，这里的_callnewh是一个new_handler函数，专门用于处理内存分配失败的情况，良好设计的new_handler只有两个选择：释放部分memory用来返回使用，或者调用abort()或exit().<br> <img src="/./images/C++memory/operatornew.png"></p>
+<h2 id="std-allocator"><a href="#std-allocator" class="headerlink" title="std::allocator"></a>std::allocator</h2><p>这里以VC6 malloc来看下malloc分配内存的内部实现<br><img src="/./images/C++memory/vc6malloc.png"><br>从上图可以看到，使用malloc来分配用户所需要的内存时，在所需内存之外还申请了用于存储cookie，debug和padding信息的内存，cookie一般是记录分配的内存块大小等信息，后续使用free释放的时候就通过cookie的信息来获取大小。debug则是开启debug调试的时候需要的信息，以及一般内存的大小需要是16字节的倍数，因此会有padding用于对齐的内存开销。<br><img src="/./images/C++memory/vc6malloc2.png"><br>从上图可以看到，VC6的allocate函数只是对malloc函数的二次封装，并没有采用特殊的操作。</p>
+<h2 id="std-alloc"><a href="#std-alloc" class="headerlink" title="std::alloc"></a>std::alloc</h2><p><img src="/./images/C++memory/stdalloc.png"><br>在课程中侯捷老师针对std::alloc有非常精彩的一个讲解，以及源码的剖析，这里简单减少下，之后写一篇专门介绍这个std::alloc的实现。</p>
+<p>std::alloc使用的是一个16个元素的数组来管理内存的链表。不同的数组元素表示不同的内存大小区块，如上图中3号区块管理的是大小为32byte的链表。每个链表用于申请和释放对应大小的内存。这里通过链表分配的内存大小是有上限的，最大的块大小为128Bytes,如果用户需要的内存大于128bytes,那么std::malloc则将会调用malloc用于分配空间。</p>
+<blockquote>
+<p>allocator分配内存主要的目的是为了加快分配的效率，以及减少内存碎片，类似内存池的设计会一次性分配一大块的内存用于管理，因此可以有效的减少每次分配的cookie和对齐等内存浪费的情况。</p>
+</blockquote>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/hujiese/CPP-Memory-Management/tree/master">https://github.com/hujiese/CPP-Memory-Management/tree/master</a></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="http://example.com">Haony Fang</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="http://example.com/2025/10/01/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">http://example.com/2025/10/01/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="http://example.com" target="_blank">Haony's Site</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/C/">C++</a><a class="post-meta__tags" href="/tags/%E6%8A%80%E6%9C%AF/">技术</a></div><div class="post-share"><div class="social-share" data-image="/img/sky.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2025/09/16/Hello-Haony/" title="Hello Haony"><img class="cover" src="/img/sky.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Hello Haony</div></div><div class="info-2"><div class="info-item-1"> 欢迎来到我的自留地。  大学的时候尝试写过一些博客，那时候是在博客园写一些技术博客，把自己鼓捣折腾一些小玩意的教程分享在上面，那些分享也确实帮助到了一些人。但是后面忙其他事情的时候慢慢的博客也断更了。 现在工作已经四年多快五年了，对于工作的认知也从当初的懵懵懂懂到现在的有了些许体会。很多时候发现写点东西记录下来，比在脑海中去回想更加有实在的意义。于是我便搞了一个自己的博客网站，不光写写技术博客，更多的是记录自己的学习，思考和体验的过程。 这是本博客网站的第一篇，记录一下小小的起点。 -2025年9月16日晚 </div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/haony.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Haony Fang</div><div class="author-info-description">日拱一卒</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">2</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">4</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">2</div></a></div><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/fanghao6666" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:zutterhao@163.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#C-%E7%A8%8B%E5%BA%8F%E9%87%8C%E4%BD%BF%E7%94%A8memory%E7%9A%84%E5%A4%9A%E7%A7%8D%E6%96%B9%E5%BC%8F"><span class="toc-number">1.</span> <span class="toc-text">C++程序里使用memory的多种方式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Array-New-%E5%92%8CArray-Delete"><span class="toc-number">1.1.</span> <span class="toc-text">Array New 和Array Delete</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#C-%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E5%88%86%E9%85%8D%E5%86%85%E5%AD%98%E7%9A%84%E9%80%94%E5%BE%84"><span class="toc-number">2.</span> <span class="toc-text">C++应用程序分配内存的途径</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#operator-new"><span class="toc-number">2.1.</span> <span class="toc-text">operator new</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#std-allocator"><span class="toc-number">3.</span> <span class="toc-text">std::allocator</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#std-alloc"><span class="toc-number">4.</span> <span class="toc-text">std::alloc</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="toc-number">5.</span> <span class="toc-text">参考资料</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/10/01/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" title="C++内存管理"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++内存管理"/></a><div class="content"><a class="title" href="/2025/10/01/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" title="C++内存管理">C++内存管理</a><time datetime="2025-10-01T00:27:47.000Z" title="发表于 2025-10-01 08:27:47">2025-10-01</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/09/16/Hello-Haony/" title="Hello Haony"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Hello Haony"/></a><div class="content"><a class="title" href="/2025/09/16/Hello-Haony/" title="Hello Haony">Hello Haony</a><time datetime="2025-09-16T13:18:52.000Z" title="发表于 2025-09-16 21:18:52">2025-09-16</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/sky.jpg);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 By Haony Fang</span></div><div class="footer_custom_text">I wish you to become your own sun, no need to rely on who's light.<p><a target="_blank" href="https://hexo.io/"><img src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&logo=hexo" title="博客框架为Hexo"></a>&nbsp;<a target="_blank" href="https://butterfly.js.org/"><img src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&logo=bitdefender" title="主题采用butterfly"></a>&nbsp;<a target="_blank" href="https://www.jsdelivr.com/"><img src="https://img.shields.io/badge/CDN-jsDelivr-orange?style=flat&logo=jsDelivr" title="本站使用JsDelivr为静态资源提供CDN加速"></a> &nbsp;<a target="_blank" href="https://vercel.com/ "><img src="https://img.shields.io/badge/Hosted-Vervel-brightgreen?style=flat&logo=Vercel" title="本站采用双线部署，默认线路托管于Vercel"></a>&nbsp;<a target="_blank" href="https://vercel.com/ "><img src="https://img.shields.io/badge/Hosted-Coding-0cedbe?style=flat&logo=Codio" title="本站采用双线部署，联通线路托管于Coding"></a>&nbsp;<a target="_blank" href="https://github.com/"><img src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&logo=GitHub" title="本站项目由Gtihub托管"></a>&nbsp;<a target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&logo=Claris" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可"></a></p></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
