@@ -1,0 +1,324 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>纹理压缩技术详解 | Haony's Site</title><meta name="author" content="Haony Fang"><meta name="copyright" content="Haony Fang"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="纹理压缩技术游戏中重要且常用的技术，最近在做纹理压缩相关的工作，正好深入的学习下纹理压缩技术的底层原理。关于纹理压缩技术有一篇非常全面的综述论文《TEXTURE COMPRESSION TECHNIQUES》, 对应有一篇中文的翻译文章。本文是上述文章的学习总结。 纹理压缩背景游戏中使用纹理是把二维图像映射到三维表面，图像中单个像素叫做Texel。游戏中使用的贴图不仅可以存储颜色，还可以存储法线，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="纹理压缩技术详解">
+<meta property="og:url" content="http://haony.me/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="Haony&#39;s Site">
+<meta property="og:description" content="纹理压缩技术游戏中重要且常用的技术，最近在做纹理压缩相关的工作，正好深入的学习下纹理压缩技术的底层原理。关于纹理压缩技术有一篇非常全面的综述论文《TEXTURE COMPRESSION TECHNIQUES》, 对应有一篇中文的翻译文章。本文是上述文章的学习总结。 纹理压缩背景游戏中使用纹理是把二维图像映射到三维表面，图像中单个像素叫做Texel。游戏中使用的贴图不仅可以存储颜色，还可以存储法线，">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://haony.me/img/sky.jpg">
+<meta property="article:published_time" content="2025-10-23T14:26:01.000Z">
+<meta property="article:modified_time" content="2025-10-25T14:24:24.070Z">
+<meta property="article:author" content="Haony Fang">
+<meta property="article:tag" content="图形学">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://haony.me/img/sky.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "纹理压缩技术详解",
+  "url": "http://haony.me/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/",
+  "image": "http://haony.me/img/sky.jpg",
+  "datePublished": "2025-10-23T14:26:01.000Z",
+  "dateModified": "2025-10-25T14:24:24.070Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Haony Fang",
+      "url": "http://haony.me"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://haony.me/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '纹理压缩技术详解',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/sky.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/haony.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">7</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 更多</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 图书</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/sky.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Haony's Site</span></a><a class="nav-page-title" href="/"><span class="site-name">纹理压缩技术详解</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 更多</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 图书</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">纹理压缩技术详解</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-10-23T14:26:01.000Z" title="发表于 2025-10-23 22:26:01">2025-10-23</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-10-25T14:24:24.070Z" title="更新于 2025-10-25 22:24:24">2025-10-25</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9/">纹理压缩</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>纹理压缩技术游戏中重要且常用的技术，最近在做纹理压缩相关的工作，正好深入的学习下纹理压缩技术的底层原理。关于纹理压缩技术有一篇非常全面的综述论文《<a target="_blank" rel="noopener" href="http://sv-journal.org/2014-1/06/en/index.php?lang=en">TEXTURE COMPRESSION TECHNIQUES</a>》, 对应有一篇中文的<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/486903217">翻译文章</a>。本文是上述文章的学习总结。</p>
+<h2 id="纹理压缩背景"><a href="#纹理压缩背景" class="headerlink" title="纹理压缩背景"></a>纹理压缩背景</h2><p>游戏中使用纹理是把二维图像映射到三维表面，图像中单个像素叫做<strong>Texel</strong>。游戏中使用的贴图不仅可以存储颜色，还可以存储法线，高度等信息,贴图需要占用大量的内存，游戏中超过一半的内存被纹理占用，而且纹理大小也会对带宽造成影响，直接影响耗电，因此需要使用纹理压缩，对内存，带宽和耗电同时进行优化，尤其在移动端设备上尤为重要。</p>
+<p>通常情况下纹理是一张二维的图像，但是传统的压缩算法（RLE,LZW等）却和流行的贴图压缩格式（JEPG,PNG等）并不适合纹理压缩，主要原因是贴图需要<strong>随机访问Texel</strong>，即只需要访问用到的纹理部分。而传统的图片压缩是需要针对整个纹理进行解压的。</p>
+<p><img src="/../images/texturecompression/1.png" alt="纹理的随机访问"></p>
+<p>因此大多数的压缩方案都会将原始的图片分割为固定大小的块，称做<strong>Tile</strong>,然后针对每个Tile进行独立的压缩。在评估一个纹理压缩方案的时候主要考虑以下几点：</p>
+<ul>
+<li>随机访问：GPU需要能够高效的随机访问任何的Texel。</li>
+<li>压缩速度：需要低成本的硬件解码，同时无间接的内存访问，理想情况下只需要单次访问内存来获取单个Tile的全部信息。</li>
+<li>高压缩率：压缩率通常使用bpp（bit per pixel）来表示，也就是平均到一个pixel使用的比特数量。</li>
+<li>图像划分为Tile: 常用的Tile大小是4x4像素，因为比4<em>4小的块比较难以压缩，比4x4大的块会影响*<em>缓存命中率</em></em>，同时为了减少延迟，我们需要压缩块的bit数能够小于内存的总线位宽，如果压缩块的比特数能够与总线的宽度相同的位数，那么可以<strong>避免流水线停顿</strong>。</li>
+<li>人眼可接受的视觉质量：这点其实很重要，我们希望在相同的压缩率下，压缩算法导致的失真能够尽可能的小。</li>
+</ul>
+<h2 id="纹理压缩算法"><a href="#纹理压缩算法" class="headerlink" title="纹理压缩算法"></a>纹理压缩算法</h2><p>目前游戏中常用的纹理压缩格式包括：</p>
+<ul>
+<li>S3TC系列，也称BC系列，在PC平台使用。</li>
+<li>ETC和PVRTC系列，在移动设备使用。</li>
+<li>ASTC系列，跨平台方案。</li>
+</ul>
+<p>早期的编码采用<strong>调色板索引</strong>的方式，就是每个像素记录的是调色板中的颜色的索引值，而不是真实的颜色值，这样做的好处是可以减少每个像素记录的数据。但是由于调色板颜色的数量限制，压缩的图像质量不会很好。而且读取内存的次数增加（从直接读取颜色变成先读取索引，再读取调色板），增大了带宽。</p>
+<p>于是使用了一种新的<strong>块压缩</strong>的算法，就是将原始的图片分为一个个的块（Tile），每个压缩块包含解码所需要的所有信息，因此单次读取即可进行解压。</p>
+<p>最早的块压缩方案是<strong>块截断编码（BTC）</strong>，用于压缩灰度图像。该算法的核心思想是对于每个块，保持块内所有像素的均值和方差不变，计算出两个值“a”和“b”，然后每个像素则使用0和1编码来表示“a”或者“b”。如下图所示，A表示原始的块的数据，计算出“a”和“b”的值分别为114和177，B为编码的结果，C为通过解码的结果。</p>
+<p><img src="/../images/texturecompression/2.png"></p>
+<p>这里的“a”和“b”的计算方式如下，然后每个原始的pixel编码为0或者1则是根据像素值大于均值还是小于均值，m是texel的数量，q是“1”的数量。</p>
+<p><img src="/../images/texturecompression/3.png"></p>
+<p>简单分析下，以上的每个Tile，需要保存“a”，“b”和编码值，“a”和“b”均为8bit，编码为1bit，总共8 + 8 + 16 &#x3D; 32bit, 所以每个pixel占用2bit，也就是2bpp。对于彩色图像，则RGB每个通道单独计算，则是6bpp。由于每个block只有两种颜色可选，解压之后的效果会受到比较大的影响。具体效果图如下：</p>
+<p><img src="/../images/texturecompression/4.png"></p>
+<h3 id="S3TC系列算法"><a href="#S3TC系列算法" class="headerlink" title="S3TC系列算法"></a>S3TC系列算法</h3><p>S3TC（S3 Texture Compression）最初由S3公司开发并获得专利。微软在Direct6.0中采用了S3TC，并命名为DXT1,对Alpha通道的修改方案被称作DXT2-DXT5，总的统称为DXTC。从DX10开始，这些格式被称作BC1-BC3(Block Compression，块压缩)，后续还推出了BC4和BC5，随着DX11的发布，出现了两种额外的格式BC6H和BC7，BC6H是第一个针对HDR纹理的压缩格式，而BC7则是专为高质量压缩而设计的格式。以上所有的S3TC系列的压缩都使用的4x4大小的Tile。接下来针对每种格式进行专门介绍。</p>
+<h4 id="BC1-S3TC-DXT1"><a href="#BC1-S3TC-DXT1" class="headerlink" title="BC1 (S3TC&#x2F;DXT1)"></a>BC1 (S3TC&#x2F;DXT1)</h4><p>BC1的块压缩由两个基色c0和c1和一个索引表构成，如下图所示，索引表中每个pixel由两个bit，因此可以索引4种基色，c0,c1,c2,c3可以被视作Tile内部的调色板，基色的格式为RGB565，每个颜色16bit，每个块总共16 + 16 + 16 * 2 &#x3D; 64bits,因此压缩率为4bpp。</p>
+<p><img src="/../images/texturecompression/5.png"></p>
+<p>BC1的Tile有两种类型：<strong>支持Alpha</strong>和<strong>不支持Alpha</strong>。</p>
+<p>对于不支持Alpha的类型，则有以下的两种计算基色c2和c3的公式，大多数情况下是使用的公式2.1计算的，如果假设Tile内是正态分布，则2.2的误差更小。</p>
+<p><img src="/../images/texturecompression/6.png"></p>
+<p>对于支持Alpha的类型，每个Texel只能是完全透明或者完全不透明，这种模式被称作<strong>穿透Alpha模式</strong>，对于这种类型的块，则c3的计算公式如下，c2则直接表示完全透明。</p>
+<p><img src="/../images/texturecompression/7.png"></p>
+<p>在实践中，需要一个额外的位来区分第一种和第二种类型的块，这个是使用<strong>数据冗余</strong>来完成的。因为块中的c0和c1的顺序对于计算是无关的，因此规定，如果c0的值大于c1,则使用第一种类型解码，否则使用第二种类型。</p>
+<p><strong>BC1压缩中，如何寻找Tile的基色c0和c1是减少视觉损失的关键</strong>。</p>
+<h4 id="BC2-DXT2-DXT3"><a href="#BC2-DXT2-DXT3" class="headerlink" title="BC2(DXT2&#x2F;DXT3)"></a>BC2(DXT2&#x2F;DXT3)</h4><p>BC1的压缩格式只适用于24bit的RGB纹理，但是不适用于RGBA8888的32bit纹理，这些纹理的alpha通道记录着不透明度或者其他信息。BC2和BC3格式被用于这类的纹理，BC2的块占用128bit，是BC1的两倍，因此BC2的压缩率为8bpp。BC2中一半的数据是预留给4bit精度的Alpha值，另一半的数据就是用于存储RGB的BC1的数据格式，颜色通道的解码方式也与BC1相同，唯一的区别是它总是以第一种类型来进行处理，因为不需要记录Alpha了。</p>
+<p><img src="/../images/texturecompression/8.png"></p>
+<p>半透明的纹理，其颜色值需要乘上Alpha通道的透明度因子。DXT2格式中的颜色值已经预乘上了Alpha，DXT3块的布局与DXT2相同，但是颜色没有预乘。DXT2和DXT3的解码过程相同，格式名字仅用于区分颜色预乘Alpha的情况。</p>
+<blockquote>
+<p>执行纹理过滤之前，颜色值总是预乘Alpha的，否则过滤结果不正确，预乘Alpha的格式更加的方便。</p>
+</blockquote>
+<h4 id="BC3-DXT4-DXT5"><a href="#BC3-DXT4-DXT5" class="headerlink" title="BC3(DXT4&#x2F;DXT5)"></a>BC3(DXT4&#x2F;DXT5)</h4><p>BC3的压缩格式和BC4相同，都是两块64bit组成：第一块存放alpha，第二块存放颜色。其中颜色块的数据格式与BC1相同，但是存放透明度数据的块采用的是压缩格式，如下图所示，Alpha通道存储两个8bit的Alpha值端点，然后每个pixel有一个3bit的调色板索引，用于查找8个Alpha调色板的值。</p>
+<p><img src="/../images/texturecompression/9.png"></p>
+<p>BC3与BC1一样，也是使用数据冗余的方式来指定编码模式，如何Alpha0 &gt; Alpha1，则通过线性插值计算调色板中其他的6个值，否则，只有4个值被插值，剩下的两个值记录被允许的最大值和最小值。其中BC1的块跟BC2一样，总是被视作第一种类型。</p>
+<p><img src="/../images/texturecompression/10.png"></p>
+<p>与BC2中的DXT2&#x2F;DXT3的区别一样，BC3中的DXT4和DXT5的区别也在于颜色值是否预乘了Alpha,DXT4存储的颜色值预乘了Alpha，而DXT5则没有。</p>
+<h4 id="BC4-ATI1-3Dc"><a href="#BC4-ATI1-3Dc" class="headerlink" title="BC4(ATI1&#x2F;3Dc+)"></a>BC4(ATI1&#x2F;3Dc+)</h4><p>BC4是BC3的Alpha部分，主要用于编码<strong>单通道纹理</strong>，例如高度图等。</p>
+<p><img src="/../images/texturecompression/11.png"></p>
+<p>BC4的解码与BC3的Alpha部分相同，但是单通道的数据通常使用[0,1]或者[-1,1]的范围数据表示，因此在BC4中的端点颜色便按照这种格式来被设置为浮点数。</p>
+<h4 id="BC5-ATI2-3Dc"><a href="#BC5-ATI2-3Dc" class="headerlink" title="BC5(ATI2&#x2F;3Dc)"></a>BC5(ATI2&#x2F;3Dc)</h4><p>BC5的格式是专门用于压缩法线贴图的，法线贴图记录了每个Texel的法线信息，是以颜色的RGB通道来表示XYZ，这些值的范围在[-1,1]。BC1中压缩颜色时,RGB通道是共用索引的，耦合到了一起。但是法线的各个通道是不相关的，而且本地调色板的大小较小，BC1压缩来压缩法线的话会限制梯度，压缩的效果很差。如下图所示，BC5和BC1的压缩效果对比。</p>
+<p><img src="/../images/texturecompression/12.png"></p>
+<p>由于法线是归一化的，因此实际上我们存储法线的时候，只需要存储其X和Y分量即可，Z分量是可以通过$z &#x3D; \sqrt{1 - x^2 + y^2}$来计算得到，因此BC5的压缩算法实际上是两块BC4的叠加，每块分别表示X和Y通道的值，如下图所示：</p>
+<p><img src="/../images/texturecompression/13.png"></p>
+<p>每个子块的解码过程与BC4的解码过程完全相同，默认情况下是不计算Z值的，因为BC5可以压缩存储任意的双通道贴图，Z值的计算是在着色器中完成。</p>
+<h4 id="BC6H"><a href="#BC6H" class="headerlink" title="BC6H"></a>BC6H</h4><p>导致BC1压缩质量差的原因有几点：</p>
+<ul>
+<li>颜色顶点精度太低（使用的RGB565），而且RGB三色不均会引起颜色偏移。</li>
+<li>局部调色板的颜色太少，只有四种。</li>
+<li>所有的四种颜色在颜色空间是在一条线性映射上，如果原始的块中的颜色分布不均的话，则压缩质量会很差，如下图所示：</li>
+</ul>
+<p><img src="/../images/texturecompression/14.png"></p>
+<p>在BC6H压缩编码中通过提高端点精度和存储多达三对颜色端点来解决，该格式每个块使用128bit，也就是8bpp。根据块类型不同，每个块有一组不同的字段，每个字段的大小也不同。BC6H的块类型增加到14个，块类型在压缩块的第一位设置，块类型被称作<strong>块模式</strong>。两分区的块和三分区的块都有64个不同的子集，为了指定块属于哪一种分区，需要在块中存储子集的ID。以下显示了2个区域和3个区域的前八个分区的子集。</p>
+<p><img src="/../images/texturecompression/15.png"></p>
+<p>和之前的压缩格式相同，pixel的索引表指定端点的混合比例，分区ID则表示Texel使用那个端点对，如上图所示，A0-A1的端点对用于子集0，B0-B1的端点对用于子集1。每个pixel的索引可以是2-4位，也就是可以索引的颜色数量从4到16(包括端点)。</p>
+<p>BC6H中的插值权重是严格定义的，如下图所示，indexprecision是单个索引的大小，可以是2，3或4位。</p>
+<p><img src="/../images/texturecompression/16.png"></p>
+<p>在DXT1中，数据冗余用于编码块类型。在BC6H &#x2F; BC7中，相同的技巧用于减少索引表的大小;每个端点对编码一位。例如，考虑texel 0的索引，它是texel的左上角。如果它的最高位是1，那么可以交换相应的端点，这个位变成0。因此，总是可以重新排列端点，使得该子集中的某个索引的最高位为0。这种索引称为锚索引，并且其最高位永远不会存储在压缩块中。</p>
+<p><img src="/../images/texturecompression/17.png"></p>
+<p><strong>BC6H旨在压缩具有高动态范围或者HDR的纹理，只支持没有Alpha的RGB图像</strong>。BC6H格式的数值可以是带符号或者无符号的16bit浮点数，因此解码器能够在带符号和无符号模式工作，然而解码后的值总是带有符号的半浮点数，解码后的值作为32位浮点数返回给着色器。</p>
+<p><img src="/../images/texturecompression/18.png"></p>
+<p>共有14种块类型如下图。BC6H只支持一区或两区块。PB字段（分区ID）始终为5位。因此，只有第32个分区集可用。在大多数情况下（对于模式10和11除外），使用Delta编码存储色彩端点：直接存储一个完整精度的端点，存储所有剩余的端点相对于完整端点的偏移值。</p>
+<p><img src="/../images/texturecompression/19.png"></p>
+<h4 id="BC7"><a href="#BC7" class="headerlink" title="BC7"></a>BC7</h4><p>BC7 是一种用于 RGB 和 RGBA 数据的高质量纹理压缩格式，每个块的大小为 16 字节（128 位），对应 4x4 的纹素区域。其压缩原理和适用场景如下：<br>压缩原理:</p>
+<ul>
+<li><strong>模式选择</strong>：BC7 可以指定 8 种模式之一，模式在 16 字节块的最低有效位中指定。模式值确定每个块内插终结点对的数目。</li>
+<li><strong>终结点编码</strong>：BC7 块可以包含多个终结点对，终结点表示形式可能采用 “RGBP” 形式，其中 “P” 位表示终结点颜色组件共享的最小有效位。例如，“RGB 5.5.5.1” 表示终结点被解释为 RGB 6.6.6 值，P 位的状态定义每个组件的最小有效位。</li>
+<li><strong>索引存储</strong>：对于每个纹素，BC7 存储一个调色板索引，该索引指向由终结点定义的颜色调色板中的颜色。编码器会通过选择合适的终结点顺序，使得指定 “修复” 索引的索引将其最有效位设置为 0，从而为每个子集保存一位。</li>
+<li><strong>alpha 通道处理</strong>：对于不显式编码 alpha 组件的 BC7 块，alpha 组件被解码为 1.0；对于具有组合颜色和 alpha 组件的 BC7 块，alpha 组件值与颜色分量值一起内插；对于具有单独的颜色和 alpha 组件的 BC7 块，RGB 矢量和标量 alpha 通道单独编码。<br>适用场景:</li>
+<li><strong>高质量纹理</strong>：BC7 是专门针对 LDR（低动态范围）图像设计的压缩算法，适用于需要高质量压缩的 RGB 或 RGBA 纹理，例如游戏中的角色纹理、场景纹理等，可以在压缩后保持较好的视觉效果。</li>
+<li><strong>法线贴图</strong>：该格式用于高质量的 RGBA 压缩，可以显著减少由于压缩法线带来的错误效果，因此非常适合法线贴图的压缩。</li>
+<li><strong>带透明通道的纹理</strong>：BC7 能够很好地处理 RGBA 数据，对于带有透明通道的纹理，如玻璃、树叶等半透明物体的纹理，BC7 压缩格式可以在保留透明信息的同时实现有效的压缩</li>
+</ul>
+<p><img src="/../images/texturecompression/20.png"></p>
+<h3 id="ETC系列算法"><a href="#ETC系列算法" class="headerlink" title="ETC系列算法"></a>ETC系列算法</h3><p>ETC（爱立信纹理压缩）格式最开始是在移动设备中使用，现在是基于<strong>Android设备的标准压缩方案</strong>。ETC系列的第一个版本PACKMAN被称作ETC1。</p>
+<p>ETC压缩的主要思想是基于<strong>人眼对亮度比色度更敏感</strong>。因此ETC中每个子块只记录一个基色,每个pixel记录亮度偏移信息，然后结合这两者获取最终的颜色。</p>
+<p><img src="/../images/texturecompression/21.png"></p>
+<h4 id="PACKMAN"><a href="#PACKMAN" class="headerlink" title="PACKMAN"></a>PACKMAN</h4><p>PACKMAN使用的是2x4的块，而不是4x4，这是因为一个压缩块占用的比特数与总线的宽度相同时，可以避免流水线停顿，简化了硬件的实现。因此PACKMAN的块使用32bit，压缩率位4bpp，等于BC1的压缩率。</p>
+<p>PACKMAN中每个块只存储一个RGB444的基色，其他的颜色是通过改变Texel的亮度来获得。解码过程首先回复四个颜色的调色板：首先通过亮度的索引（4bit）从亮度查找表中找到四个颜色的亮度变化，然后应用于基色。恢复出调色盘之后，通过pixel的索引来指定每个pixel编码的颜色。亮度查找表的前半部分如下图，后半部分是前半部分的两倍缩放。</p>
+<p><img src="/../images/texturecompression/22.png"></p>
+<h4 id="ETC1-iPACKMAN"><a href="#ETC1-iPACKMAN" class="headerlink" title="ETC1(iPACKMAN)"></a>ETC1(iPACKMAN)</h4><p>单个低精度的颜色RGB444是限制PACKMAN编码效果的主要因素。ETC1编码中使用的块大小为4x4，由两个子块构成（2x4或者4x2）。其中第一个子块的基色以RGB555精度存储，而第二个基色则存储3为的插值，如果两个基色都是RGB444的块称为Individual模式。亮度码则使用3bit来索引8种亮度偏移。最后的两位：diff用来指定块类型，flip指定块的垂直或水平排列的方式。</p>
+<p><img src="/../images/texturecompression/23.png"></p>
+<h4 id="ETC2"><a href="#ETC2" class="headerlink" title="ETC2"></a>ETC2</h4><p>虽然ETC1差分和旋转模式提高了质量，但是由于每个块中只有一个基色可用，在色度变化较大的块里，质量损失也比较大。ETC2使用额外的块模式来解决这个问题，这些新的模式是用ETC1中无效的块编码实现，使得ETC2完全兼容ETC1。</p>
+<p>当基色R0和偏移量dR1的和溢出了有效的5bit的范围[0,31]的时候，无效的组合出现在差分块中，这些数据块使用一种新的模式进行解码，导致溢出的R0和dR1的所有组合如下：</p>
+<p><img src="/../images/texturecompression/24.png"></p>
+<p>这种块中64位的1位用于diff位，8位用于R0和dR1的值，剩下55位，可以使用R0和dR1的两个低位来编码附加信息，总共有效载荷是59位。绿色通道中的溢出可以来编码另一种模式，但是有效负载将更少，因为需要保证在红色通道中没有溢出，否则被视作前一种，只需要花1bit，因为R0高位如果不相等，则保证没有溢出。这种模式下共58位，蓝色通道溢出则提供了57位。以下是所有的块的模式：</p>
+<p><img src="/../images/texturecompression/25.png"></p>
+<p>与单独和差分模式类似，T块和H块中的最低32位用于索引表。 但是本地调色板以完全不同的方式恢复。两种颜色A (r0, g0, b0)和B (r1, g1, b1)以RGB444格式存储在压缩的T块中。 其余3位对d值进行编码。A和B颜色解量化为RGB888。然后，其他两种局部调色板颜色计算为 C0 &#x3D; (A - (d, d, d)) 和 C1 &#x3D; (A + (d, d, d))。因此，本地调色板颜色在RGB空间中形成T形如下图。这种模式对块很有用，其中大部分点位于一条线上，但一些纹素有不同的颜色。需要说明的是，距离d是间接存储的：3位字段用作查找表(LUT) {3,6,11,16,23,32,41,64} 的索引，T块和H块相同。</p>
+<p><img src="/../images/texturecompression/26.png"></p>
+<p>H型与T型非常相似。有两种颜色A和B，以及存储在块中的d值的索引。但是C0、C1、C2、C3颜色在本地调色板中使用，而不是A、B、C0、C1(参见图24)。这些颜色在RGB空间中形成H字母形状。此模式适用于编码块，其中颜色位于两条线上。 但是，H块的有效载荷比T块少一位，同时必须存储相同数量的数据（两种RGB444颜色和一个用于d的 LUT 索引）。 这个问题可以通过BC1中使用的相同技巧来解决；由于H形是对称的，因此可以交换A和B颜色并对丢失的位进行编码。</p>
+<p><img src="/../images/texturecompression/27.png"></p>
+<h3 id="PVRTC系列算法"><a href="#PVRTC系列算法" class="headerlink" title="PVRTC系列算法"></a>PVRTC系列算法</h3><p>PVRTC（PowerVR Texture Compression）是为PowerVR图形核心设计的，被用于苹果的移动设备。</p>
+<p>PVRTC算法将整个图像分为高频和低频信号，低频信号由两个低分辨率的图像A和B来表示，在两个维度上分别缩小了4倍。高频信号是一个全分辨率但是低精度的调制信号M。解码的过程是：首先按照比例放大图像A和B,然后使用调制信号M进行混合，该调制信号制定了每个纹理像素的混合权重。与其他的压缩方案不同，PVRTC受益于跨块的颜色的相似性，因此PVRTC原生支持平滑的渐变。</p>
+<p><img src="/../images/texturecompression/28.png"></p>
+<h4 id="PVRTC-4bpp"><a href="#PVRTC-4bpp" class="headerlink" title="PVRTC 4bpp"></a>PVRTC 4bpp</h4><p>为了不分别访问三个不同的图像，PVRTC将所有的数据以64bit存储在一个块中，每个块由图像A的一个像素和图像B的一个像素以及对应的4x4的调制系数组成，如下图：</p>
+<p><img src="/../images/texturecompression/29.png"></p>
+<p>A和B颜色任何一种都可以使用RGB或者RGBA存储，两个颜色字段中的最高位决定使用哪种格式。具体可以表示的格式如上图所示。由于A和B贴图在解码的时候需要放大，因此PVRC块解码需要访问相邻的四个块的信息，然后使用双线性滤波器放大，最后每个像素的索引值对A和B图像以权重来混合。</p>
+<p><img src="/../images/texturecompression/30.png"></p>
+<p>模式位（如下图）用于穿透alpha模式。这允许在不损失RGB通道精度的情况下对1位alpha通道进行编码。当Mode-bit为“1”时，索引“10”为完全透明值保留。</p>
+<p><img src="/../images/texturecompression/31.png"></p>
+<p>注意到了，PVRTC中解码每个块的时候需要访问到相邻的四个块，似乎会影响性能，但是这种负面的影响可以被<strong>纹理缓存</strong>所减少，如果命中缓存的话，访问相邻的块只需要很少的内存访问时间。实际上，访问相邻的块在纹理的滤波中也会被需要，所以最坏情况下任何的压缩算法的解压都需要访问相邻的纹理块。</p>
+<h4 id="PVRTC-2bpp"><a href="#PVRTC-2bpp" class="headerlink" title="PVRTC 2bpp"></a>PVRTC 2bpp</h4><p>PVRTC格式具有2bpp的非常高压缩级别的模式。它类似于4bpp模式并使用相同的块布局。然而，图像A和B在水平维度上进一步缩小了两倍。因此，32位调制字段必须保存8x4纹素的调制信息。模式位现在指定调制数据编码。如果它是“0”，那么每个纹素的1位索引存储在调制字段中。否则，将存储2位索引，但仅存储以棋盘图案排列的一半纹素。剩余纹素的调制值是通过平均相邻的两个或四个调制值来计算的。</p>
+<p><img src="/../images/texturecompression/32.png"></p>
+<h3 id="ASTC系列算法"><a href="#ASTC系列算法" class="headerlink" title="ASTC系列算法"></a>ASTC系列算法</h3><p>ASTC(Adaptive Scalable Texture Compression)由ARM和AMD联合开发，所有的ARM图形内核都支持ASTC的硬件。ASTC的开发基于以下的一些要求：</p>
+<ul>
+<li>从1到4分量纹理支持。虽然可以使用BC7、PVRTC2或ETC2存储单通道纹理，但对于空通道会浪费大量位。</li>
+<li>在不相关通道的情况下可接受的质量。 这对于法线贴图和 RGBA 图像很重要。</li>
+<li>LDR和HDR支持。BC6H可用于HDR纹理压缩，但它不支持alpha通道。</li>
+<li>跨平台支持。PVRTC仅仅支持iOS平台，BC6H&#x2F;BC7不支持移动设备，ETC不支持桌面GPU。对于跨平台开发人员来说，这是相当不方便的。</li>
+<li>比特率&#x2F;质量比的灵活性。根据纹理类型，不同级别的压缩伪影是可以接受的，因为可压缩性因图像而异。前面提到的格式提供不超过两个比特率&#x2F;质量选项（BC1&#x2F;BC7或PVRTC4bpp&#x2F;2bpp）。由于不能使用5bpp压缩级别（如果4bpp提供的质量略微不足），则必须使用8bpp选项。它在没有显着质量改进的情况下使带宽翻倍。</li>
+<li>支持2D和3D纹理。</li>
+</ul>
+<p>ASTC的格式由一个固定大小的128bit的块，但是对于2D纹理，编码的图块的大小从4x4到12x12纹理像素，对于3D纹理从3x3x3到6x6x6不等。下图表示所有的ASTC的压缩格式及压缩率。</p>
+<p><img src="/../images/texturecompression/33.png"></p>
+<p>关于ASTC有一篇比较好的<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/707250800">参考文章</a>。</p>
+<h4 id="ASTC与普通Block压缩算法的区别"><a href="#ASTC与普通Block压缩算法的区别" class="headerlink" title="ASTC与普通Block压缩算法的区别"></a>ASTC与普通Block压缩算法的区别</h4><ul>
+<li>ASTC的块的大小是可变的，可以是4<em>4，6</em>6等，但是数据量是固定的，一块的大小固定128bit，也就是块越大，压缩率就越高，质量就越差。</li>
+<li>块是可以分成更细的partition，这个防止在一块中出现不连续的更小的部分。</li>
+<li>通道的角度上也可以分planes，比如RBG可以和A分开，这样是为了分别计算用于插值的Color Endpoint。</li>
+<li>对Color Endpoint和Weight的数据使用了BISE( bounded integer sequence encoding)。<br>2，3，4使得Color Endpoint和weight占用的位数是可变的，这让ASTC的压缩率可变，有可变的块大小，而且可以兼容1~4个通道。</li>
+</ul>
+<h4 id="ASTC压缩算法基本概念"><a href="#ASTC压缩算法基本概念" class="headerlink" title="ASTC压缩算法基本概念"></a>ASTC压缩算法基本概念</h4><h5 id="Color-Endpoint"><a href="#Color-Endpoint" class="headerlink" title="Color Endpoint"></a>Color Endpoint</h5><p>ASTC是用两个端点颜色来框定当前block的颜色范围。然后用插值的方式得到当前texel的数值，所以，这里的Color Endpoint就是用于插值的两个端点颜色。</p>
+<h5 id="Plane"><a href="#Plane" class="headerlink" title="Plane"></a>Plane</h5><p>贴图中各个通道之间并不一定是相关的，比如我们可以在Alpha通道里面存一些和颜色不相关的数据，这个时候如果把四个通道看成一个整体去做插值的话，每个texel只有一个weight去插值，那么就会出现比较大的误差，为了解决这个问题，提出了Dual-Plane的概念，也就是Color Endpoint的某一个单独的通道可以单独计算，每个texel可以有两个weight去用来插值两个Plane的值。</p>
+<h5 id="Partition"><a href="#Partition" class="headerlink" title="Partition"></a>Partition</h5><p>虽然，我们已经把整个图片分割成了4*4这样的Block，但是仍然可能会出现在block内部值相差很大的情况，这个时候就需要把原来的block细分到更小的partition上去了，然后每个partition分别计算Color Endpoint，再来插值，这样会更合理。当Dual-Plane开启的时候，partition最多只能是3，因为大于3数据位就不够了。</p>
+<h5 id="BISE（Bounded-Integer-Sequence-Encoding）"><a href="#BISE（Bounded-Integer-Sequence-Encoding）" class="headerlink" title="BISE（Bounded Integer Sequence Encoding）"></a>BISE（Bounded Integer Sequence Encoding）</h5><p>ASTC中主要使用到了BISE（Bounded Integer Sequence Encoding）。比如现在有三个数字需要编码{40，50，70}，对应的二进制为{101000，110010，1000110}，一般情况下，我们可能想到的使用二进制来编码这三个值，这三个值在128以内，所以，可以每个数用7bit来编码，那么也就是需要21bit位。那这里我们可以用BISE来减少编码的位数，以此来压缩数据量。BISE会把数分为高位和地位，高位使用Trits（三进制）或者Quints（五进制）来表示，多少值范围内的数如何分割表示是有个最佳实践的，这里可以查表来确定，为了简单，这里直接给出例子中的结论，它们是在80（查找表中的固定值）以内的数字，所以使用4bit的Bits表示低位，高位用Quints来表示。那它们的低位就是{1000，0010，0110}，这个直接编码就可以了，高位的值为{2，3，4}，然后把这三个值拼到一个大数值上，因为高位用Quints表示的，三位的Quints就能表示125（5 * 5 * 5）以内的数字，我们可以用7bit（128）来表示，这样原本要24（3 * 8）bit的三个数字就用了4 * 3 + 7 &#x3D; 19bit来表示了。下图是BISE和二进制存储效率的对比图。</p>
+<p><img src="/../images/texturecompression/34.png"></p>
+<h5 id="寻找主轴"><a href="#寻找主轴" class="headerlink" title="寻找主轴"></a>寻找主轴</h5><p>我们在编码贴图的时候，Color Endpoint只会有两个值，也就是说我们在做压缩的时候是一个二维的插值，我们的贴图中有四维的数据，我们需要尽量的保留原来block中的值。也就是说需要把数据降维，这个就是PCA(主成分分析法)来处理的问题了。但是在实际的实现中，我们并不会真的用PCA来计算，因为PCA需要计算数据的协方差矩阵，还要计算矩阵的特征值，这些计算过于繁琐，我们需要一个近似的方法来替代PCA，当然如果你不需要实时，为了更好的效果，PCA仍然是一个可选的方案。</p>
+<h5 id="Bounding-Box"><a href="#Bounding-Box" class="headerlink" title="Bounding Box"></a>Bounding Box</h5><p>这个比较好理解，就是找所有数据在四个维度上的最大最小值，就像我们计算Mesh的AABB bound一样，这样我们不仅找到了主轴，就是最小和最大值组成的那条轴，而且还直接找到了Endpoints，也就是最大最小的值。但是，这个方案明显太过粗略了，这个轴有可能完全在大多数值的分布之外，但是由于计算量很少，这个方案在实时要求很高的时候是可取的。</p>
+<h5 id="最大笛卡尔坐标轴累加"><a href="#最大笛卡尔坐标轴累加" class="headerlink" title="最大笛卡尔坐标轴累加"></a>最大笛卡尔坐标轴累加</h5><p>这个方法是ARM提供的开源代码中的实现，做法是这样的，先求出block中所有颜色的值的平均值。然后计算每个颜色值跟平均值的差，然后根据这个差是否在x,y,z,w上的正方向上，比如如果在x的正方向上，就将这个差的值加到一个累加的向量上，也就是说sum_x这样的值会是所有差值在x正方向上的差值的累加，还有其他sum_y,sum_z,sum_w,然后比较这几个sum的向量的模，最长的向量就是我们想要找的向量。感性上，我能理解它在先确定一个笛卡尔坐标轴方向下，然后找到这个方向下所有点的贡献，然后得到在这几个方向上选择一个最优的。但是，我没有找到这背后的数学支撑，如果有同学能找到线索，请千万告诉我（在ARM开源代码中的compute_avgs_and_dirs方法中）。</p>
+<h5 id="计算-EndPoint"><a href="#计算-EndPoint" class="headerlink" title="计算 EndPoint"></a>计算 EndPoint</h5><p>对于Bounding Box的方法，这个比较简单，就是算出来的最大最小值，对于单纯找主轴的方法，我们需要把所有的颜色值投影到轴上，找到投影完最大和最小的值，就是我们要找的Endpoint的值。</p>
+<h5 id="计算Weights"><a href="#计算Weights" class="headerlink" title="计算Weights"></a>计算Weights</h5><p>这个需要计算Endpoint之间的距离，然后把Block中每个投影到主轴上的值减去最小值之后去除以Endpoint之间的距离。</p>
+<h4 id="ASTC压缩流程"><a href="#ASTC压缩流程" class="headerlink" title="ASTC压缩流程"></a>ASTC压缩流程</h4><p>上面介绍了一些ASTC压缩算法用到的一些算法细节，接下来就开始介绍如何使用上面的算法，把一个4*4的block中的颜色值压缩写入到128bit的数据块中的。首先看一下这128bit的数据分布是怎样的。</p>
+<p><img src="/../images/texturecompression/35.png"></p>
+<p>可以看到有些位的数据是固定大小的，是一些配置还有一些数据则是动态大小的，如Texel weight data，不同的配置它的数据大小是不同的。</p>
+<h5 id="BlockMode"><a href="#BlockMode" class="headerlink" title="BlockMode"></a>BlockMode</h5><p>在ASTC的block中低11位是Block mode，这个是ASTC block中最重要的配置项，包含以下一些内容。</p>
+<p><img src="/../images/texturecompression/36.png"></p>
+<p>其中$D_P$是说要不要开启dual weight planes，P是表示是否开启range的高清模式，W，H是用来说weight grid的长宽，这个可以和block size不一样，缺失的用插值来获得，$\rho^0$,$\rho^1$,$\rho^2$是用来表示range的，这个需要结合P来确定。</p>
+<p><img src="/../images/texturecompression/37.png"></p>
+<p>可以看到，当确定完weights的取值范围，也就确定了如何用BISE来编码了，这个BISE的编码的最佳实现在代码实现的时候会录入到一个表里面。</p>
+<h5 id="Part"><a href="#Part" class="headerlink" title="Part"></a>Part</h5><p>用来描述partition的个数。所以最多支持4（3+1）个partitions。</p>
+<p><img src="/../images/texturecompression/38.png"></p>
+<p>如果Partition大于1的话，会有一个Partition index的配置来从上面的编码好的分块去选择。</p>
+<p><img src="/../images/texturecompression/39.png"></p>
+<h5 id="CEM-Color-endpoint-mode"><a href="#CEM-Color-endpoint-mode" class="headerlink" title="CEM(Color endpoint mode)"></a>CEM(Color endpoint mode)</h5><p>这个配置是在说如何编码Color endpoint的，有下面这么多种编码方式。</p>
+<p><img src="/../images/texturecompression/40.png"></p>
+<p>上面的图是single-partition的时候CEM有4bits，如果是multi-partition，那么CEM就会有6-14bits了。multi-partition会略复杂，这里就不详细说明了。虽然压缩的数据可以有各种编码，通道数也可以配置，但是解压之后就都是RGBA的基本格式了。</p>
+<h5 id="Color-Endpoint-Data"><a href="#Color-Endpoint-Data" class="headerlink" title="Color Endpoint Data"></a>Color Endpoint Data</h5><p>当block的上面的配置确定之后，我们就已经决定每个类型的数据位数了。我们来简单计算一下，首先blockmode的位数是固定的是11bits，然后是part 2bits，然后根据part的数量得出有P位的partition index。根据block mode中的weight grid size 和 weight range，就可以计算出一个plane的weight data的位数了，那整个weight data的数据位数就可以计算出来了就是$W_{width} * W_{height} * NumOfPlane * WeightBits$。CEM有4bit或者6-14bits。如果开了dual-plane，还会有2bits的CCS(Color Component Selector)，这个是用来标明哪个通道会被认为是单独的一个plane。</p>
+<p><img src="/../images/texturecompression/41.png"></p>
+<p>CCS是写在Weight Data的低位后面的。到了这里，我们就把数据填的只剩Color Endpoint Data了，这个时候可能会疑惑，Color Endpoint Data用什么BISE编码格式呢，这个是算出来的，因为只剩下Color Endpoint Data了，我们需要用完整个128bit，这里会有一个表格，根据还剩多少bits，Color Endpoint的编码方式（CEM），几个partitions，就能得出需要多少个数字来表达所有的Color Endpoint Data，然后直接查表（quant_mode_table）能得出BISE的编码规则。到此所有128bits的数据就被填满了。</p>
+<h4 id="压缩算法流程"><a href="#压缩算法流程" class="headerlink" title="压缩算法流程"></a>压缩算法流程</h4><p>下面就是整个ASTC的压缩流程。</p>
+<p><img src="/../images/texturecompression/42.png"></p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a target="_blank" rel="noopener" href="http://sv-journal.org/2014-1/06/en/index.php?lang=en">http://sv-journal.org/2014-1/06/en/index.php?lang=en</a></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="http://haony.me">Haony Fang</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="http://haony.me/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/">http://haony.me/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="http://haony.me" target="_blank">Haony's Site</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E5%9B%BE%E5%BD%A2%E5%AD%A6/">图形学</a></div><div class="post-share"><div class="social-share" data-image="/img/sky.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2025/10/14/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%80-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" title="深入理解GPU(一) 渲染管线"><img class="cover" src="/img/sky.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">深入理解GPU(一) 渲染管线</div></div><div class="info-2"><div class="info-item-1"> 使用一个东西，却不明白它的道理，并不高明.  做图形学最重要的就是跟GPU打交道，利用GPU来实现各种效果。但是之前一直只停留在比较上层的使用上，对于GPU的底层和硬件架构知之甚少。借用侯捷老师的一句话“使用一个东西，却不明白它的道理，并不高明”。于是便花了些时间深入学习了GPU的相关知识，做些记录。 腾讯技术工程的官方号上有一篇详细介绍GPU的文章：《GPU 渲染管线和硬件架构浅谈》,总结的非常全面，反复看了好多遍，也是本篇文章的主要参考资料。知乎平台上讲解NVIDIA GPU架构的系列文章非常详细的介绍了各代架构的GPU及其硬件架构，非常值得一读。 RTR4开篇第一二章的内容就是介绍的GPU硬件架构和渲染管线，这里我们也按照这个顺序：  第一篇将主要介绍图形学中的GPU渲染管线，包括桌面端和移动端； 第二章主要介绍GPU的硬件架构； 第三章主要介绍GPU编程和优化方法相关。  GPU渲染管线</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/10/14/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%80-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" title="深入理解GPU(一) 渲染管线"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-10-14</div><div class="info-item-2">深入理解GPU(一) 渲染管线</div></div><div class="info-2"><div class="info-item-1"> 使用一个东西，却不明白它的道理，并不高明.  做图形学最重要的就是跟GPU打交道，利用GPU来实现各种效果。但是之前一直只停留在比较上层的使用上，对于GPU的底层和硬件架构知之甚少。借用侯捷老师的一句话“使用一个东西，却不明白它的道理，并不高明”。于是便花了些时间深入学习了GPU的相关知识，做些记录。 腾讯技术工程的官方号上有一篇详细介绍GPU的文章：《GPU 渲染管线和硬件架构浅谈》,总结的非常全面，反复看了好多遍，也是本篇文章的主要参考资料。知乎平台上讲解NVIDIA GPU架构的系列文章非常详细的介绍了各代架构的GPU及其硬件架构，非常值得一读。 RTR4开篇第一二章的内容就是介绍的GPU硬件架构和渲染管线，这里我们也按照这个顺序：  第一篇将主要介绍图形学中的GPU渲染管线，包括桌面端和移动端； 第二章主要介绍GPU的硬件架构； 第三章主要介绍GPU编程和优化方法相关。  GPU渲染管线</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/haony.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Haony Fang</div><div class="author-info-description">日拱一卒</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">7</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/fanghao6666" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:zutterhao@163.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E8%83%8C%E6%99%AF"><span class="toc-number">1.</span> <span class="toc-text">纹理压缩背景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E7%AE%97%E6%B3%95"><span class="toc-number">2.</span> <span class="toc-text">纹理压缩算法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#S3TC%E7%B3%BB%E5%88%97%E7%AE%97%E6%B3%95"><span class="toc-number">2.1.</span> <span class="toc-text">S3TC系列算法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#BC1-S3TC-DXT1"><span class="toc-number">2.1.1.</span> <span class="toc-text">BC1 (S3TC&#x2F;DXT1)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#BC2-DXT2-DXT3"><span class="toc-number">2.1.2.</span> <span class="toc-text">BC2(DXT2&#x2F;DXT3)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#BC3-DXT4-DXT5"><span class="toc-number">2.1.3.</span> <span class="toc-text">BC3(DXT4&#x2F;DXT5)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#BC4-ATI1-3Dc"><span class="toc-number">2.1.4.</span> <span class="toc-text">BC4(ATI1&#x2F;3Dc+)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#BC5-ATI2-3Dc"><span class="toc-number">2.1.5.</span> <span class="toc-text">BC5(ATI2&#x2F;3Dc)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#BC6H"><span class="toc-number">2.1.6.</span> <span class="toc-text">BC6H</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#BC7"><span class="toc-number">2.1.7.</span> <span class="toc-text">BC7</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ETC%E7%B3%BB%E5%88%97%E7%AE%97%E6%B3%95"><span class="toc-number">2.2.</span> <span class="toc-text">ETC系列算法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#PACKMAN"><span class="toc-number">2.2.1.</span> <span class="toc-text">PACKMAN</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ETC1-iPACKMAN"><span class="toc-number">2.2.2.</span> <span class="toc-text">ETC1(iPACKMAN)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ETC2"><span class="toc-number">2.2.3.</span> <span class="toc-text">ETC2</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PVRTC%E7%B3%BB%E5%88%97%E7%AE%97%E6%B3%95"><span class="toc-number">2.3.</span> <span class="toc-text">PVRTC系列算法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#PVRTC-4bpp"><span class="toc-number">2.3.1.</span> <span class="toc-text">PVRTC 4bpp</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#PVRTC-2bpp"><span class="toc-number">2.3.2.</span> <span class="toc-text">PVRTC 2bpp</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ASTC%E7%B3%BB%E5%88%97%E7%AE%97%E6%B3%95"><span class="toc-number">2.4.</span> <span class="toc-text">ASTC系列算法</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#ASTC%E4%B8%8E%E6%99%AE%E9%80%9ABlock%E5%8E%8B%E7%BC%A9%E7%AE%97%E6%B3%95%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="toc-number">2.4.1.</span> <span class="toc-text">ASTC与普通Block压缩算法的区别</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ASTC%E5%8E%8B%E7%BC%A9%E7%AE%97%E6%B3%95%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="toc-number">2.4.2.</span> <span class="toc-text">ASTC压缩算法基本概念</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#Color-Endpoint"><span class="toc-number">2.4.2.1.</span> <span class="toc-text">Color Endpoint</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#Plane"><span class="toc-number">2.4.2.2.</span> <span class="toc-text">Plane</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#Partition"><span class="toc-number">2.4.2.3.</span> <span class="toc-text">Partition</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#BISE%EF%BC%88Bounded-Integer-Sequence-Encoding%EF%BC%89"><span class="toc-number">2.4.2.4.</span> <span class="toc-text">BISE（Bounded Integer Sequence Encoding）</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%AF%BB%E6%89%BE%E4%B8%BB%E8%BD%B4"><span class="toc-number">2.4.2.5.</span> <span class="toc-text">寻找主轴</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#Bounding-Box"><span class="toc-number">2.4.2.6.</span> <span class="toc-text">Bounding Box</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%9C%80%E5%A4%A7%E7%AC%9B%E5%8D%A1%E5%B0%94%E5%9D%90%E6%A0%87%E8%BD%B4%E7%B4%AF%E5%8A%A0"><span class="toc-number">2.4.2.7.</span> <span class="toc-text">最大笛卡尔坐标轴累加</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97-EndPoint"><span class="toc-number">2.4.2.8.</span> <span class="toc-text">计算 EndPoint</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97Weights"><span class="toc-number">2.4.2.9.</span> <span class="toc-text">计算Weights</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ASTC%E5%8E%8B%E7%BC%A9%E6%B5%81%E7%A8%8B"><span class="toc-number">2.4.3.</span> <span class="toc-text">ASTC压缩流程</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#BlockMode"><span class="toc-number">2.4.3.1.</span> <span class="toc-text">BlockMode</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#Part"><span class="toc-number">2.4.3.2.</span> <span class="toc-text">Part</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#CEM-Color-endpoint-mode"><span class="toc-number">2.4.3.3.</span> <span class="toc-text">CEM(Color endpoint mode)</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#Color-Endpoint-Data"><span class="toc-number">2.4.3.4.</span> <span class="toc-text">Color Endpoint Data</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8E%8B%E7%BC%A9%E7%AE%97%E6%B3%95%E6%B5%81%E7%A8%8B"><span class="toc-number">2.4.4.</span> <span class="toc-text">压缩算法流程</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="toc-number">3.</span> <span class="toc-text">参考资料</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/" title="纹理压缩技术详解"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="纹理压缩技术详解"/></a><div class="content"><a class="title" href="/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/" title="纹理压缩技术详解">纹理压缩技术详解</a><time datetime="2025-10-23T14:26:01.000Z" title="发表于 2025-10-23 22:26:01">2025-10-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/10/14/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%80-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" title="深入理解GPU(一) 渲染管线"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="深入理解GPU(一) 渲染管线"/></a><div class="content"><a class="title" href="/2025/10/14/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%80-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" title="深入理解GPU(一) 渲染管线">深入理解GPU(一) 渲染管线</a><time datetime="2025-10-14T14:36:07.000Z" title="发表于 2025-10-14 22:36:07">2025-10-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/10/11/%E6%B8%B8%E6%88%8F%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="游戏性能优化"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="游戏性能优化"/></a><div class="content"><a class="title" href="/2025/10/11/%E6%B8%B8%E6%88%8F%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="游戏性能优化">游戏性能优化</a><time datetime="2025-10-11T12:55:56.000Z" title="发表于 2025-10-11 20:55:56">2025-10-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/10/09/%E5%AD%A6%E4%B9%A0%E8%B5%84%E6%BA%90%E6%B1%87%E6%80%BB/" title="学习资源汇总"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="学习资源汇总"/></a><div class="content"><a class="title" href="/2025/10/09/%E5%AD%A6%E4%B9%A0%E8%B5%84%E6%BA%90%E6%B1%87%E6%80%BB/" title="学习资源汇总">学习资源汇总</a><time datetime="2025-10-09T14:38:59.000Z" title="发表于 2025-10-09 22:38:59">2025-10-09</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/10/06/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E4%B9%8Bstd-alloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" title="C++内存管理之std::alloc源码分析"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="C++内存管理之std::alloc源码分析"/></a><div class="content"><a class="title" href="/2025/10/06/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E4%B9%8Bstd-alloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" title="C++内存管理之std::alloc源码分析">C++内存管理之std::alloc源码分析</a><time datetime="2025-10-06T03:33:15.000Z" title="发表于 2025-10-06 11:33:15">2025-10-06</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/sky.jpg);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 By Haony Fang</span></div><div class="footer_custom_text">I wish you to become your own sun, no need to rely on who's light.<p><a target="_blank" href="https://hexo.io/"><img src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&logo=hexo" title="博客框架为Hexo"></a>&nbsp;<a target="_blank" href="https://butterfly.js.org/"><img src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&logo=bitdefender" title="主题采用butterfly"></a>&nbsp;<a target="_blank" href="https://www.jsdelivr.com/"><img src="https://img.shields.io/badge/CDN-jsDelivr-orange?style=flat&logo=jsDelivr" title="本站使用JsDelivr为静态资源提供CDN加速"></a> &nbsp;<a target="_blank" href="https://vercel.com/ "><img src="https://img.shields.io/badge/Hosted-Vervel-brightgreen?style=flat&logo=Vercel" title="本站采用双线部署，默认线路托管于Vercel"></a>&nbsp;<a target="_blank" href="https://vercel.com/ "><img src="https://img.shields.io/badge/Hosted-Coding-0cedbe?style=flat&logo=Codio" title="本站采用双线部署，联通线路托管于Coding"></a>&nbsp;<a target="_blank" href="https://github.com/"><img src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&logo=GitHub" title="本站项目由Gtihub托管"></a>&nbsp;<a target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&logo=Claris" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可"></a></p></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
