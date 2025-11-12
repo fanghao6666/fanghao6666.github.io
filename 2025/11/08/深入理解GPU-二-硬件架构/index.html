@@ -1,0 +1,273 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>深入理解GPU(二)硬件架构 | Haony's Site</title><meta name="author" content="Haony Fang"><meta name="copyright" content="Haony Fang"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="上篇文章介绍了GPU的渲染管线，这是从渲染的流程层面介绍了GPU渲染的过程，本文的内容深入到GPU的硬件架构，从硬件层面介绍GPU的组成和工作原理。参考文献有多篇非常深入详细的文章，值得学习。 什么是GPU？GPU的全称是Graphics Processing Unit,图形处理单元。最初的GPU是专门用于绘制图形图像和处理图元数据的特定芯片。 如上图所示，展示了GPU和CPU的硬件差异：  CP">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解GPU(二)硬件架构">
+<meta property="og:url" content="http://haony.me/2025/11/08/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%BA%8C-%E7%A1%AC%E4%BB%B6%E6%9E%B6%E6%9E%84/index.html">
+<meta property="og:site_name" content="Haony&#39;s Site">
+<meta property="og:description" content="上篇文章介绍了GPU的渲染管线，这是从渲染的流程层面介绍了GPU渲染的过程，本文的内容深入到GPU的硬件架构，从硬件层面介绍GPU的组成和工作原理。参考文献有多篇非常深入详细的文章，值得学习。 什么是GPU？GPU的全称是Graphics Processing Unit,图形处理单元。最初的GPU是专门用于绘制图形图像和处理图元数据的特定芯片。 如上图所示，展示了GPU和CPU的硬件差异：  CP">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://haony.me/img/sky.jpg">
+<meta property="article:published_time" content="2025-11-08T13:33:45.000Z">
+<meta property="article:modified_time" content="2025-11-12T14:03:58.525Z">
+<meta property="article:author" content="Haony Fang">
+<meta property="article:tag" content="技术">
+<meta property="article:tag" content="GPU">
+<meta property="article:tag" content="图形学">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://haony.me/img/sky.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "深入理解GPU(二)硬件架构",
+  "url": "http://haony.me/2025/11/08/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%BA%8C-%E7%A1%AC%E4%BB%B6%E6%9E%B6%E6%9E%84/",
+  "image": "http://haony.me/img/sky.jpg",
+  "datePublished": "2025-11-08T13:33:45.000Z",
+  "dateModified": "2025-11-12T14:03:58.525Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Haony Fang",
+      "url": "http://haony.me"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://haony.me/2025/11/08/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%BA%8C-%E7%A1%AC%E4%BB%B6%E6%9E%B6%E6%9E%84/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '深入理解GPU(二)硬件架构',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/sky.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/haony.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">8</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 更多</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 图书</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/sky.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Haony's Site</span></a><a class="nav-page-title" href="/"><span class="site-name">深入理解GPU(二)硬件架构</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 更多</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 图书</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">深入理解GPU(二)硬件架构</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-11-08T13:33:45.000Z" title="发表于 2025-11-08 21:33:45">2025-11-08</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-11-12T14:03:58.525Z" title="更新于 2025-11-12 22:03:58">2025-11-12</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/GPU/">GPU</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>上篇文章介绍了GPU的渲染管线，这是从渲染的流程层面介绍了GPU渲染的过程，本文的内容深入到GPU的硬件架构，从硬件层面介绍GPU的组成和工作原理。参考文献有多篇非常深入详细的文章，值得学习。</p>
+<h2 id="什么是GPU？"><a href="#什么是GPU？" class="headerlink" title="什么是GPU？"></a>什么是GPU？</h2><p>GPU的全称是<strong>Graphics Processing Unit</strong>,图形处理单元。最初的GPU是专门用于绘制图形图像和处理图元数据的特定芯片。</p>
+<p><img src="/../images/gpu2/1.png"><br>如上图所示，展示了GPU和CPU的硬件差异：</p>
+<ul>
+<li>CPU的核心数量少，每个核心都有控制单元，内存设计上是<strong>大缓存，低延迟</strong>。CPU擅长分支控制和逻辑运算，而不适合海量的数据计算。</li>
+<li>GPU则计算单元非常多，<strong>多个计算单元共享一个控制单元</strong>。内存设计上是<strong>追求高带宽，可以接受高延迟</strong>。GPU适合海量的数据并发计算的场景。</li>
+</ul>
+<h2 id="桌面GPU-物理架构"><a href="#桌面GPU-物理架构" class="headerlink" title="桌面GPU 物理架构"></a>桌面GPU 物理架构</h2><p>GPU的微观结构因不同厂商，不同架构都会有所差异，但是核心的部件，概念以及运行机制大同小异，桌面级的GPU产商有NVIDIA，AMD，移动端的GPU包括PowerVR，Mali和Andreno。以NVIDIA的桌面级GPU为例，历代的GPU包括Tesla，Fermi, Maxwell，Kepler和Turing架构。关于各代GPU的详细架构信息，推荐<a target="_blank" rel="noopener" href="https://www.zhihu.com/column/c_1351502583832354816">GPU架构系列文章</a>，生动详细。</p>
+<h3 id="Tesla架构"><a href="#Tesla架构" class="headerlink" title="Tesla架构"></a>Tesla架构</h3><p><img src="/../images/gpu2/2.png"><br>以上是Tesla架构的总览图，Tesla架构虽然是早期的GPU架构，但是却包括了GPU该有的硬件结构，其所奠定的基础设施框架和设计思想却历久弥新。Tesla架构的硬件部分包括以下组件：</p>
+<ul>
+<li><strong>Host Interface</strong>: 主要用于接受来自CPU端各种图形API（DX,GL,Vulkan等）发出的的渲染命令，Host Interface接受这些命令，并通过FrontEnd处理这些命令，同时Host Interface还负责将内存中的各种数据，包括顶点数据，贴图数据，buffer数据等，传入到GPU的显存中。</li>
+<li><strong>Input Assembler</strong>: 负责将顶点数据根据顶点索引和图元类型进行简单的组装，并搭配上对应的顶点属性，然后传送给Vertex Work Distribution。</li>
+<li><strong>Vertex,Pixel,Compute Work Distribution</strong>: 可以理解为包工头，负责将各自领域的工作分发到对应的工作单元去执行。</li>
+<li><strong>TPC(Texture Processing Cluster)</strong>: 包含一个纹理单元Texture Unit和两个负责计算的SM(Streaming Multiprocessor)，下面会详细介绍SM的结构。</li>
+<li><strong>Viewport&#x2F;Clip&#x2F;Setup&#x2F;Raster&#x2F;Zcull Block</strong>: 顶点着色器处理完，还只是输出了一堆裁剪坐标和等待光栅化插值的属性，这个模块就负责这些内容，流水线到目前还未开放编程部分。</li>
+<li><strong>ROP(Raster Operations Process)</strong>:这些模块负责对pixel shader处理后的像素进行测试和合并。同一个像素位置的深度&#x2F;模板的写入，颜色混合，抗锯齿等都由该模块完成。</li>
+<li><strong>L2 cache, Memory Controller和DRAM</strong>：每个DRAM搭配一个ROP，Memory Controller和L2 cache，从SM发来的数据吞吐的请求会在这里执行，同时还负责将最终的像素值写入到FrameBuffer中。</li>
+</ul>
+<p><img src="/../images/gpu2/3.png"><br>上面是一个TPC内部的详细结构，在Tesla架构中一个有8个这样的TPC单元。每个TPC内部包括有：</p>
+<ul>
+<li><strong>Geometry Controller</strong>: 负责顶点属性在芯片内部的输入和输出，同时还负责几何着色器等增删顶点改变顶点拓扑结构等。<strong>顶点着色器和几何着色器是在SM里完成的</strong>，Geometry Controller会把顶点着色器的结果送入到Viewport&#x2F;Clip&#x2F;Setup&#x2F;Raster&#x2F;Zcull Block去进行光栅化，或者Stream Out输出。</li>
+<li><strong>SMC(SM Controller)</strong>： Tesla是统一的并行计算架构，顶点着色器，几何着色器，片元着色器和计算着色器等都由SM来进行计算，SMC的职责就是将这些任务拆分打包成<strong>Warp</strong>，然后派发给SM进行执行，同时SMC还负责协调SM和Texture Unit之间的操作。总结就是SMC主要负责对接外部资源和协调内部工作。</li>
+<li><strong>Texture Unit</strong>:包含4个纹理地址生成器和8个滤波单元。与SM内的指令都是标量运算不同，纹理单元的指令源是<strong>纹理坐标</strong>，输出的是<strong>经过插值的纹理值</strong>，这些值都是<strong>向量</strong>，获取的数据会暂存到Tex L1 cache中备用。</li>
+<li><strong>SM(Steaming Multiprocessor)</strong>: 执行真正计算的单元，每个TPC包含两个SM，SM又包含以下内容：<ul>
+<li><strong>I-Cache</strong>: 指令缓存，一个SM需要执行的来自SMC分配的任务，并不是马上就能执行的，大量的执行是需要被缓存下来，分批执行的。</li>
+<li><strong>C-Cache</strong>: 常量缓存，主要用于缓存常量数据。</li>
+<li><strong>Shared Memory</strong>: SM 内的高速可编程内存，由同一 SM 内的所有线程共享，用于线程间通信和数据复用.</li>
+<li><strong>MT(Multi Thread) issue</strong>: 负责把Warp任务拆分为一条条的执行派发执行，<strong>其对Warp的调度是GPU并行能力的关键</strong>。</li>
+<li><strong>SP(Streaming Processor)</strong>: 真正执行计算的地方，主要执行最基本的浮点型标量运算，包括add,multiply,multiply-add等，以及各种整型的运算。</li>
+<li><strong>SFU(Special Function Unit)</strong>: 执行复杂的运行，比如指数，对数，三角函数，属性插值，透视矫正等复杂的运算单元。</li>
+</ul>
+</li>
+</ul>
+<p>每个SM可以执行的可以是着色器程序，也可以是CUDA程序，这些高级语言会被首先编译成为中间指令，然后优化成为GPU的二进制指令。**ISA(Instruction Set Architecture)**主要包含有：</p>
+<ul>
+<li>运算：浮点和整型的加法乘法，最大最小等。</li>
+<li>流控制：分支，调用，返回，中断和同步等。</li>
+<li>内存访问：包括内存的读取，写入，原子操作等。</li>
+</ul>
+<h4 id="SIMD和SIMT"><a href="#SIMD和SIMT" class="headerlink" title="SIMD和SIMT"></a>SIMD和SIMT</h4><p>SIMD指Single Instruction Multi Data,即单个指令，多数据。SIMT是Single Instruction Multi Thread，即单个指令，多个线程。关于SIMD和SIMT的区别可以参考<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/389913100">该文章</a>。</p>
+<p>SIMD在多个数据上并行进行相同操作的硬件部件。典型地，SIMD将两个vector作为操作数，对于两个vector的操作数进行相同操作，下图展示了使用SIMD并行执行四个操作的计算。SIMD在多个寄存器中存储多个数据，然后GPU从寄存器中取出数据来执行相同的指令，进行相同的计算，其<strong>本质还是一个线程</strong>。<br><img src="/../images/gpu2/4.png"></p>
+<p>SIMT则类似于CPU中的多线程，每个线程都有自己独立的寄存器，ALU和data cache，但是所有的线程使用相同的指令，命令从单一的instruction cache广播到所有的SIMT的core,每个core的指令一样，数据不一样。SIMT是真正的并行，GPU中的并行处理就是基于SIMT的。</p>
+<p>当SMC拿到一个着色器的所有指令之后，会将指令以<strong>32个线程为单位</strong>分发给SM， 负责执行这个着色器的所有的32个线程，称作一个<strong>Warp</strong>。指令存在了Instruction Cache里，warp scheduler会将数据存入寄存器，然后将指令派发给warp内的SP来执行。这里需要区分的是：warp的线程数量为32，并不一定表示执行的sp有32个，比如Tesla架构内的一个SM的SP只有8个，那么如何运行32个线程呢？答案就是<strong>每个sp执行四次</strong>。所以Warp其实是逻辑的概念，与实际物理层面的core的数量无关。</p>
+<p><img src="/../images/gpu2/5.png"></p>
+<h4 id="Warp-Divergence"><a href="#Warp-Divergence" class="headerlink" title="Warp Divergence"></a>Warp Divergence</h4><p>一个Warp内所有的线程都是执行的相同的指令，但是由于数据不同，不同的线程可能进入到不同的分支，GPU会将所有的分支都走一遍，如果当前的指令是true，但是当前线程的数据条件是false，那么此时线程会被<strong>遮掩（Mask out）</strong>，其执行结果会被丢弃掉，即使只有一个线程进行了分支，那么其他所有的线程也必须等待它执行完毕，这个就是<strong>锁步执行（lock step）</strong>。在所有分支都走同一侧还好，如果两个分支都走，则会产生性能影响。另外，如果shader对应的像素数量达不到32个线程，那么仍然会占用一个warp来运行，其中部分的核心工作，另外的则不工作，warp的利用率会降低。所以为了提高warp的使用效率，尽可能的将线程并行的数量对齐32，同时保证每个warp内的分支都走同一边，避免分叉。</p>
+<h4 id="Stall和延迟隐藏（Latency-Hiding）"><a href="#Stall和延迟隐藏（Latency-Hiding）" class="headerlink" title="Stall和延迟隐藏（Latency Hiding）"></a>Stall和延迟隐藏（Latency Hiding）</h4><p>GPU中的延迟Latency表示指令从开始到结束所消耗的clock cycle的数量，在GPU中硬件，计算比内存访问的速度要快几个数量级，所以延迟通常都是对主存的访问造成的。比如纹理采样，读取顶点数据，读取varing等，尤其是纹理采样，如果cache missing可能需要消耗几百个时钟周期。</p>
+<p>GPU实现延迟隐藏的主要方式就是通过warp的切换来完成，一个SM中可能存下足够多的warp，这些warp可以是不同类型的，GPU在warp之间的切换几乎是无开销的，所以当一个Warp stall了，就会立马切换到下一个warp，等到之前的warp需要的数据准备好了，再切换回来继续执行。</p>
+<p>GPU之所以能实现这个机制，得益于GPU中大量的寄存器，GPU中的寄存器数量要远超于CPU，SM中为每个warp的的线程在初始化的时候就会分配好所需的寄存器和local memory，当Warp发生切换时不需要保存和恢复寄存器状态，因此才能实现<strong>无成本切换，可以在一个cycle内完成。</strong>。</p>
+<blockquote>
+<p>需要注意的是，如果Shader里变量多，占用的寄存器就会变多，留给warp切换的寄存器就会变少，自然分配给SM的warp的数量就会减少（这里可以想象成按照寄存器数量来分warp的数量），这样就会降低GPU延迟隐藏的能力，降低GPU利用率。</p>
+</blockquote>
+<p><img src="/../images/gpu2/6.png"></p>
+<h4 id="GPU内存"><a href="#GPU内存" class="headerlink" title="GPU内存"></a>GPU内存</h4><p><img src="/../images/gpu2/7.png"></p>
+<p>根据CPU-GPU是否共享内存，分为两种CPU-GPU的架构，左侧是<strong>分离式架构</strong>，CPU和GPU有独立的内存和缓存，通过PCIE等总线通讯，这种结构的缺点在于PCIE有着<strong>高延迟低带宽</strong>的特点，数据传输成为性能瓶颈。右侧是<strong>耦合式架构</strong>，CPU和GPU共享内存和缓存，移动端通常都是这种架构。</p>
+<p>在内存管理方面，分离式架构中两者各自拥有独立内存，两者<strong>共享一套虚拟地址空间，必要时进行内存拷贝</strong>。耦合式结构中，GPU没有独立内存，与CPU共享系统内存，由MMU管理。GPU使用独立显存空间的好处是:GPU可以对Buffer和Texture进一步优化，实现对GPU更加友好的内存排布，显存中存储的数据可能并不是我们实际Upload上去的数据，所以在耦合式架构中，即使CPU和GPU使用同一片物理内存，仍然需要使用Mapbuffer来实现对数据的拷贝。如果对CPU和GPU使用相同的数据，GPU无法进行优化，反而可能降低性能。</p>
+<h4 id="GPU内存分类"><a href="#GPU内存分类" class="headerlink" title="GPU内存分类"></a>GPU内存分类</h4><p><img src="/../images/gpu2/8.png"><br>如上图所示是GPU中内存的层次结构，速度最快的是寄存器，L1缓存是片上缓存（On-Chip Memory），每个shader的核心都有独立的L1缓存，其访问速度很快。L2缓存时所有的Shader核心共享的，属于片外缓存，距离shader核心略远，所以访问速度比L1要慢。DRAM是主存（可以叫做System Memory，或Global Memory，或Device Memory），这个内存最大，也是访问速度最慢的，FrameBuffer一般都是放在主存上的。</p>
+<p>不同内存的访问速度如下所示：<br><img src="/../images/gpu2/9.png"></p>
+<ul>
+<li>寄存器内存（Register Memory）: 访问速度最快，GPU中的寄存器数量很多。</li>
+<li>共享内存（Shared Memory）： 也是片上内存，和L1 Cache是同一个硬件单元，SharedMemory可以开发者控制，而L1是GPU控制的。Shared Memory访问速度很快，是一个Shader核心内所有的线程所共享的。</li>
+<li>全局内存（Global Memory）: 即主存，系统内存或者设备内存，数量最大，速度最慢。</li>
+<li>局部内存（Local Memory）： Local Memory是Global Memory的一部分，它是<strong>每个线程所私有的</strong>，主要用于处理寄存器溢出，或者超大的uniform数组，由于是Global Memory的部分，所以访问速度很慢。</li>
+<li>常量内存（Constant Memory）: 常量内存也是Global Memory的一部分，所以访问速度同样很慢，部分GPU会有<strong>Constant Cache</strong>用于缓存。</li>
+<li>纹理内存（Texture Memory）: 纹理内存也是Global Memory的一部分，访问速度也很慢，部分GPU会有<strong>Texture Cache</strong>。</li>
+</ul>
+<h4 id="Memory-Bank和Bank-Confict"><a href="#Memory-Bank和Bank-Confict" class="headerlink" title="Memory Bank和Bank Confict"></a>Memory Bank和Bank Confict</h4><p>为了能够提高内存访问性能，SharedMemory和L1Cache被设计为一个个的<strong>MemoryBank</strong>。Bank数量一般与warp大小或者CUDA core的数量对应，例如32个core就会把SystemMemory划分为32个Bank，每个bank包含多个cacheline,<strong>Bank可以理解为memory对外的窗口，窗口越多就越高效</strong>。</p>
+<p>如果同一个warp中的不同线程访问的是不同的bank，则可以并行执行，最大化的利用带宽；如果访问的是一个bank中的同一个cacheline，那么可以通过广播机制同步到其他线程，一次访问可以获取全部数据；如果访问的是同一个bank中的不同cacheline，那么就需要阻塞等待，串行访问，这个叫做<strong>Bank Conflict</strong>，会影响性能。如果不同的线程对同一个cacheline有写入的操作，那么也必须要阻塞等待，等上一个线程写入完毕，才能执行后续的读取或者写入。</p>
+<h3 id="其他的重要概念"><a href="#其他的重要概念" class="headerlink" title="其他的重要概念"></a>其他的重要概念</h3><h4 id="Pixel-Quad"><a href="#Pixel-Quad" class="headerlink" title="Pixel Quad"></a>Pixel Quad</h4><p><img src="/../images/gpu2/10.png"><br>光栅化的基本单位是像素pixel，但是片元着色器执行的基本单位是<strong>Pixel Quad</strong>，也就是2x2的像素。其目的是为了计算ddx和ddy,从而选取贴图的mipmap级别。<strong>进行EarlyZ判断的最小单位也是Pixel Quad</strong>。</p>
+<p>由于PixelQuad的存在，即使再小的三角形，哪怕只占用一个像素，也会最小执行四个像素的ps，因此会造成很大的Overdraw,所以我们需要<strong>尽可能的避免大量的小图元的绘制</strong>。</p>
+<h4 id="Early-ZS"><a href="#Early-ZS" class="headerlink" title="Early ZS"></a>Early ZS</h4><p>在传统的渲染管线中，像素首先执行ps计算，然后再通过深度&#x2F;模板测试，判断是否需要写入&#x2F;废弃该像素的结果，这样就会造成overdraw。于是现代GPU出现一个EarlyZ的技术，将深度&#x2F;模板测试放在PS之前进行，这样可以提前将看不见的像素剔除掉，减少Overdraw。<strong>Early ZS执行的最小单位不是pixel,而是Pixel Quad</strong>。</p>
+<p>AlphaTest是在PS之后，ROP之前，根据像素计算得到的Alpha值来判断是否需要保留该像素，因此AlphaTest会影响EarlyZ的优化，因为像素必须执行PS才能知道自己是否需要保留。如果在像素着色器里会修改深度，如使用AlphaToCoverage，同样会影响EarlyZ的执行。</p>
+<h4 id="Hiz-Culling"><a href="#Hiz-Culling" class="headerlink" title="Hiz Culling"></a>Hiz Culling</h4><p>Hierarchical Z-Culling(Hiz),是Nvidia GPU支持的粗粒度的硬件culling方案，通过低分辨率的Z-Buffer来做剔除，它的精确度是8x8的像素块。关于各种基于Z的Culling方案，可以参考这篇文章：<a target="_blank" rel="noopener" href="https://imgtec.eetrend.com/blog/2020/100059433.html">渲染杂谈：early-z、z-culling、hi-z、z-perpass到底是什么？</a></p>
+<h4 id="Register-Spliing-和-Active-Warp"><a href="#Register-Spliing-和-Active-Warp" class="headerlink" title="Register Spliing 和 Active Warp"></a>Register Spliing 和 Active Warp</h4><p>前文提到GPU中的寄存器有很多，但是数量是有上限的，GPU的核心在执行一个Warp的时候，会在一开始就把寄存器分配给每个线程，这里每个线程执行所需要的寄存器的大小是在shader编译完成之后就可以确定的，如果shader占用的寄存器过多，那么最终可以分配来执行的Warp数量就变少了，也就是<strong>Active Warp</strong>降低。Active Warp数量降低会影响延迟隐藏的能力，进而影响GPU的性能。同时Shader使用的寄存器过多会产生更加严重的问题就是<strong>Register Spilling</strong>：GPU会将寄存器文件存储到Local Memomry上，而Local Memory是主存的一部分，访问速度很慢。</p>
+<h4 id="GPU核心的乱序执行和保序"><a href="#GPU核心的乱序执行和保序" class="headerlink" title="GPU核心的乱序执行和保序"></a>GPU核心的乱序执行和保序</h4><p>GPU的计算核心是<strong>乱序执行</strong>的，不同的Warp执行的耗时不一致，受到分支，cache miss等因素的影响，GPU会尽可能的填充任务到核心，但是<strong>同一个像素的写入顺序是保证的</strong>，先执行的DrawCall的像素一定是先写入到FrameBuffer的，GPU在每个阶段输出的结果也都是保序的。</p>
+<h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/timlly/p/11471507.html">深入GPU硬件架构及运行机制</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.zhihu.com/column/c_1351502583832354816">GPU架构探秘之旅</a></li>
+<li><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/2016951">GPU 渲染管线和硬件架构浅谈</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.imaginationtech.com/blog/a-look-at-the-powervr-graphics-architecture-tile-based-rendering/">A look at the PowerVR graphics architecture: Tile-based rendering</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.imaginationtech.com/blog/the-dr-in-tbdr-deferred-rendering-in-rogue/">A look at the PowerVR graphics architecture: Deferred rendering</a></li>
+<li><a target="_blank" rel="noopener" href="https://developer.apple.com/documentation/metal/gpu_features/understanding_gpu_family_4">Understanding GPU Family 4</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.anandtech.com/print/7793/imaginations-powervr-rogue-architecture-exposed">Imagination’s PowerVR Rogue Architecture Explored</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.imaginationtech.com/blog/graphics-cores-trying-compare-apples-apples/">Graphics cores: trying to compare apples to apples</a></li>
+<li><a target="_blank" rel="noopener" href="https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/the-mali-gpu-an-abstract-machine-part-1---frame-pipelining">The Mali GPU: An Abstract Machine, Part 1 - Frame Pipelining</a></li>
+<li><a target="_blank" rel="noopener" href="https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/the-mali-gpu-an-abstract-machine-part-2---tile-based-rendering">The Mali GPU: An Abstract Machine, Part 2 - Tile-based Rendering</a></li>
+<li><a target="_blank" rel="noopener" href="https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/the-mali-gpu-an-abstract-machine-part-3---the-midgard-shader-core">The Mali GPU: An Abstract Machine, Part 3 - The Midgard Shader Core</a></li>
+<li><a target="_blank" rel="noopener" href="https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/the-mali-gpu-an-abstract-machine-part-4---the-bifrost-shader-core">The Mali GPU: An Abstract Machine, Part 4 - The Bifrost Shader Core</a></li>
+<li><a target="_blank" rel="noopener" href="https://community.arm.com/arm-community-blogs/b/graphics-gaming-and-vr-blog/posts/killing-pixels---a-new-optimization-for-shading-on-arm-mali-gpus">Forward pixel killing</a></li>
+<li><a target="_blank" rel="noopener" href="https://developer.arm.com/documentation/102662/0100">Tile-Based Rendering</a></li>
+<li><a target="_blank" rel="noopener" href="https://developer.arm.com/documentation/101897/0200">Arm Mali GPU Best Practices Developer Guide</a></li>
+<li><a target="_blank" rel="noopener" href="https://community.arm.com/cfs-file/__key/communityserver-blogs-components-weblogfiles/00-00-00-20-66/siggraph2015_2D00_mmg_2D00_andy_2D00_notes.pdf">Mobile Hardware and Bandwidth</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.anandtech.com/print/10375/arm-unveils-bifrost-and-mali-g71">ARM Unveils Next Generation Bifrost GPU Architecture &amp; Mali-G71: The New High-End Mali</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.anandtech.com/print/14385/arm-announces-malig77-gpu">Arm’s New Mali-G77 &amp; Valhall GPU Architecture: A Major Leap</a></li>
+<li><a target="_blank" rel="noopener" href="https://users.nik.uni-obuda.hu/sima/letoltes/Processor_families_Knowledge_Base_2019/Qualcomm's_processor_lines_2018_12_30.pdf">Qualcomm’s mobile processor lines</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/freedreno/freedreno/wiki/Adreno-tiling">Adreno-tiling</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/112120206">移动设备 GPU 架构知识汇总</a></li>
+<li><a target="_blank" rel="noopener" href="https://developer.samsung.com/galaxy-gamedev/resources/articles/gpu-framebuffer.html">GPU Framebuffer Memory: Understanding Tiling</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/22232448">GPU 画像素的顺序是什么</a> (结合 Understanding Tiling 这篇文章，可以更加清晰的理解 GPU 光栅化的绘制顺序)</li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/68158277">当我们谈优化时，我们谈些什么</a> (从硬件到优化，非常值得阅读)</li>
+<li><a target="_blank" rel="noopener" href="https://developer.nvidia.com/nvidia-gpu-programming-guide">NVIDIA GPU Programming Guide</a></li>
+<li><a target="_blank" rel="noopener" href="https://developer.nvidia.com/content/life-triangle-nvidias-logical-pipeline">Life of a triangle - NVIDIA’s logical pipeline</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.zhihu.com/column/c_119702958">游戏性能优化杂谈</a> (陈文礼大佬的性能优化杂谈系列文章非常值得一读)</li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/347001411">移动平台 GPU 硬件学习与理解</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/367122807">GPU 分析工具随笔</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/441610596">GPU 架构和渲染</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/33127345">再议移动平台的 AlphaTest 效率问题</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/57871063">试说 PowerVR 家的 TBDR</a></li>
+<li><a target="_blank" rel="noopener" href="https://gitlab.freedesktop.org/mesa/mesa">mesa</a>（开源的 opengl 实现。包含 freedreno，一个开源的 adreno 驱动。如果对驱动实现细节感兴趣，比如 early-z、lrz 的实现原理，强烈推荐阅读，这个是网上少有的代码级别的资料）</li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="http://haony.me">Haony Fang</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="http://haony.me/2025/11/08/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%BA%8C-%E7%A1%AC%E4%BB%B6%E6%9E%B6%E6%9E%84/">http://haony.me/2025/11/08/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%BA%8C-%E7%A1%AC%E4%BB%B6%E6%9E%B6%E6%9E%84/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="http://haony.me" target="_blank">Haony's Site</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%8A%80%E6%9C%AF/">技术</a><a class="post-meta__tags" href="/tags/GPU/">GPU</a><a class="post-meta__tags" href="/tags/%E5%9B%BE%E5%BD%A2%E5%AD%A6/">图形学</a></div><div class="post-share"><div class="social-share" data-image="/img/sky.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/" title="纹理压缩技术详解"><img class="cover" src="/img/sky.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">纹理压缩技术详解</div></div><div class="info-2"><div class="info-item-1">纹理压缩技术游戏中重要且常用的技术，最近在做纹理压缩相关的工作，正好深入的学习下纹理压缩技术的底层原理。关于纹理压缩技术有一篇非常全面的综述论文《TEXTURE COMPRESSION TECHNIQUES》, 对应有一篇中文的翻译文章。本文是上述文章的学习总结。 纹理压缩背景游戏中使用纹理是把二维图像映射到三维表面，图像中单个像素叫做Texel。游戏中使用的贴图不仅可以存储颜色，还可以存储法线，高度等信息,贴图需要占用大量的内存，游戏中超过一半的内存被纹理占用，而且纹理大小也会对带宽造成影响，直接影响耗电，因此需要使用纹理压缩，对内存，带宽和耗电同时进行优化，尤其在移动端设备上尤为重要。 通常情况下纹理是一张二维的图像，但是传统的压缩算法（RLE,LZW等）却和流行的贴图压缩格式（JEPG,PNG等）并不适合纹理压缩，主要原因是贴图需要随机访问Texel，即只需要访问用到的纹理部分。而传统的图片压缩是需要针对整个纹理进行解压的。  因此大多数的压缩方案都会将原始的图片分割为固定大小的块，称做Tile,然后针对每个Tile进行独立的压缩。在评估一个纹理压缩方案的时候主要考虑以下几...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/10/14/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%80-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" title="深入理解GPU(一) 渲染管线"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-10-14</div><div class="info-item-2">深入理解GPU(一) 渲染管线</div></div><div class="info-2"><div class="info-item-1"> 使用一个东西，却不明白它的道理，并不高明.  做图形学最重要的就是跟GPU打交道，利用GPU来实现各种效果。但是之前一直只停留在比较上层的使用上，对于GPU的底层和硬件架构知之甚少。借用侯捷老师的一句话“使用一个东西，却不明白它的道理，并不高明”。于是便花了些时间深入学习了GPU的相关知识，做些记录。 腾讯技术工程的官方号上有一篇详细介绍GPU的文章：《GPU 渲染管线和硬件架构浅谈》,总结的非常全面，反复看了好多遍，也是本篇文章的主要参考资料。知乎平台上讲解NVIDIA GPU架构的系列文章非常详细的介绍了各代架构的GPU及其硬件架构，非常值得一读。 RTR4开篇第一二章的内容就是介绍的GPU硬件架构和渲染管线，这里我们也按照这个顺序：  第一篇将主要介绍图形学中的GPU渲染管线，包括桌面端和移动端； 第二章主要介绍GPU的硬件架构； 第三章主要介绍GPU编程和优化方法相关。  GPU渲染管线所谓的GPU渲染管线，就是有一堆的模型数据（点，线，三角形等），经过GPU端的一系列的流水线处理，最终得到屏幕上的二维图像的流程。跟工业生产的流水线一样，GPU的管线各个部分也是并行处理...</div></div></div></a><a class="pagination-related" href="/2025/10/01/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" title="C++内存管理"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-10-01</div><div class="info-item-2">C++内存管理</div></div><div class="info-2"><div class="info-item-1">最近在学习侯捷老师的《C++内存管理》课程，对C++底层的内存管理机制有了更深的一些理解，这里记录一下主要的学习内容和相关问题。 C++程序里使用memory的多种方式如上图所示，C++有多种直接或者间接控制内存的方式，相关的总结如下：这里主要区分的是 new 和 operator new  new是C++的表达式(expressions),也就是C++在编译的时候会将表达式展开为多行代码语句，因为是表达式，所以new不可以重载。 operator new是C++的函数，所以该函数是可以被重载的。  下图是C++的new expression的内部逻辑可以看到针对new expression，编译器实际在背后做了以下几件事：  首先通过operator new申请一块内存，内存大小根据complex类来定。 然后将申请的内存指针强制转换为目标类型指针，这里的是Complex*类型。 最后调用目标类型complex的构造函数构造对象。这里注意的是：通过pc-&gt;Complex::Complext(1,2)这种方式调用构造函数，只有编译器可以做，用户是不能这么做的。  与new表...</div></div></div></a><a class="pagination-related" href="/2025/10/06/C-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E4%B9%8Bstd-alloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" title="C++内存管理之std::alloc源码分析"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-10-06</div><div class="info-item-2">C++内存管理之std::alloc源码分析</div></div><div class="info-2"><div class="info-item-1">书接上回。侯捷老师的教程里对G2.9的std::alloc的运行模式和源码都进行了非常精彩的讲解。虽然这个allocator的历史比较久了，但是其中的设计思想对于后续的内存分配还是有比较重要的参考意义。这里就老师课程中的内容做一些总结记录。 std::alloc的运作模式上图表示了std::alloc的运作模式示意图，std::alloc使用了一条16个元素大小的数组来管理链表，不同索引的元素管理不同大小的链表。其中#0链表记录的是最小的8个bytes的链表，而#15链表记录是最大的128bytes的链表，相邻的链表元素大小相差8bytes。这里需要注意的是：该链表仅维护分配128Bytes以内的内存块，大于128Bytes的则将直接使用malloc直接分配空间。 嵌入式指针这里每个细分的区块使用的嵌入式指针来节省内存的使用，每个被管理的自由区块头部使用嵌入式指针指向其他的链接的区块，而一旦区块被分配给用户，那么这段内存就可以直接被使用，因此不会造成内存的浪费。这种嵌入式指针的思想在很多的分配器中都有使用。 以下直接通过截取PPT内容来看下std::alloc的内存分配 1、在申...</div></div></div></a><a class="pagination-related" href="/2025/10/09/%E5%AD%A6%E4%B9%A0%E8%B5%84%E6%BA%90%E6%B1%87%E6%80%BB/" title="学习资源汇总"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-10-09</div><div class="info-item-2">学习资源汇总</div></div><div class="info-2"><div class="info-item-1"> 日拱一卒，功不唐捐  学习资源汇总，持续更新中… 技术C++图形学 Physically Based Rendering:计算机图形学领域（尤其是光线追踪与基于物理的渲染方向）的经典教科书与实践指南，被誉为该领域的 “圣经” 之一,适合有一定的图形学开发经验的技术人员。（目前该书的电子版已经全部免费）  Real Time Rendering 4th: 这是一本图形学的宝典，与其说是书，更像是图形学技术的技术目录。涵盖了现代渲染技术、图形编程原理和实时可视化技术等内容，从基本的数学基础到前沿游戏使用的高级技术都有涉及。目前还有中文翻译的资源。  博客  Arseny Kapoulkine: 前Roblox的图形学技术研究员，是pugixml,meshoptimizer,volk,等开源库的作者，会在个人博客和Youtube频道分享编程相关知识。 Jendrik Illner:现任Santa Monica Studio的高级渲染程序员，曾再EA担任渲染工程师，与寒霜引擎团队合作下一代渲染后端。专注于引擎设计、优化以及基于 GPU 的流水线技术。他整理的Weekly Newslet...</div></div></div></a><a class="pagination-related" href="/2025/10/11/%E6%B8%B8%E6%88%8F%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="游戏性能优化"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-10-11</div><div class="info-item-2">游戏性能优化</div></div><div class="info-2"><div class="info-item-1">最近在Youtube上看到一个很不错的讲游戏性能优化的系列视频，花了几个小时学习了一下。作者从游戏性能优化的准则，优化的方向做了较为详细的介绍，以及介绍了性能分析工具的使用，并结合Unity和Unreal的示例场景来实际分析和优化游戏性能。由于视频时长限制，很多方面讲解的不是很深入，这里对视频里印象较深的部分做一些总结，同时也作为性能分析的一个学习资源笔记，后续有时间可以针对各个方面进行更深一步的探索。 游戏优化准则谁来优化？ 游戏开发实际是策划，美术，程序等各个不同职能的人来共同完成的，那么对于游戏的优化而言，作者认为不是由某个人来完成，而是每个人都需要了解和参与。美术需要知道哪些能做，哪些不能做，哪些效果需要，哪些效果没那么重要。程序需要知道哪些可以做，哪些做不了，哪些可以做的更好。 游戏性能优化是一个非常大的课题，实际过程中不同的项目，由于美术资源，玩法，画面效果，以及设备平台的不同，甚至是引擎的不同，需要面对的优化问题可能都是不一样的，因此没有所谓的统一的优化方法，而是需要具体问题具体对待。 下面这句话是贯穿整个系列视频的指导准则 **先分析，再优化**  这句话听起来也...</div></div></div></a><a class="pagination-related" href="/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/" title="纹理压缩技术详解"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-10-23</div><div class="info-item-2">纹理压缩技术详解</div></div><div class="info-2"><div class="info-item-1">纹理压缩技术游戏中重要且常用的技术，最近在做纹理压缩相关的工作，正好深入的学习下纹理压缩技术的底层原理。关于纹理压缩技术有一篇非常全面的综述论文《TEXTURE COMPRESSION TECHNIQUES》, 对应有一篇中文的翻译文章。本文是上述文章的学习总结。 纹理压缩背景游戏中使用纹理是把二维图像映射到三维表面，图像中单个像素叫做Texel。游戏中使用的贴图不仅可以存储颜色，还可以存储法线，高度等信息,贴图需要占用大量的内存，游戏中超过一半的内存被纹理占用，而且纹理大小也会对带宽造成影响，直接影响耗电，因此需要使用纹理压缩，对内存，带宽和耗电同时进行优化，尤其在移动端设备上尤为重要。 通常情况下纹理是一张二维的图像，但是传统的压缩算法（RLE,LZW等）却和流行的贴图压缩格式（JEPG,PNG等）并不适合纹理压缩，主要原因是贴图需要随机访问Texel，即只需要访问用到的纹理部分。而传统的图片压缩是需要针对整个纹理进行解压的。  因此大多数的压缩方案都会将原始的图片分割为固定大小的块，称做Tile,然后针对每个Tile进行独立的压缩。在评估一个纹理压缩方案的时候主要考虑以下几...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/haony.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Haony Fang</div><div class="author-info-description">日拱一卒</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">8</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/fanghao6666" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:zutterhao@163.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFGPU%EF%BC%9F"><span class="toc-number">1.</span> <span class="toc-text">什么是GPU？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A1%8C%E9%9D%A2GPU-%E7%89%A9%E7%90%86%E6%9E%B6%E6%9E%84"><span class="toc-number">2.</span> <span class="toc-text">桌面GPU 物理架构</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Tesla%E6%9E%B6%E6%9E%84"><span class="toc-number">2.1.</span> <span class="toc-text">Tesla架构</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#SIMD%E5%92%8CSIMT"><span class="toc-number">2.1.1.</span> <span class="toc-text">SIMD和SIMT</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Warp-Divergence"><span class="toc-number">2.1.2.</span> <span class="toc-text">Warp Divergence</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Stall%E5%92%8C%E5%BB%B6%E8%BF%9F%E9%9A%90%E8%97%8F%EF%BC%88Latency-Hiding%EF%BC%89"><span class="toc-number">2.1.3.</span> <span class="toc-text">Stall和延迟隐藏（Latency Hiding）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#GPU%E5%86%85%E5%AD%98"><span class="toc-number">2.1.4.</span> <span class="toc-text">GPU内存</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#GPU%E5%86%85%E5%AD%98%E5%88%86%E7%B1%BB"><span class="toc-number">2.1.5.</span> <span class="toc-text">GPU内存分类</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Memory-Bank%E5%92%8CBank-Confict"><span class="toc-number">2.1.6.</span> <span class="toc-text">Memory Bank和Bank Confict</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E7%9A%84%E9%87%8D%E8%A6%81%E6%A6%82%E5%BF%B5"><span class="toc-number">2.2.</span> <span class="toc-text">其他的重要概念</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Pixel-Quad"><span class="toc-number">2.2.1.</span> <span class="toc-text">Pixel Quad</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Early-ZS"><span class="toc-number">2.2.2.</span> <span class="toc-text">Early ZS</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Hiz-Culling"><span class="toc-number">2.2.3.</span> <span class="toc-text">Hiz Culling</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Register-Spliing-%E5%92%8C-Active-Warp"><span class="toc-number">2.2.4.</span> <span class="toc-text">Register Spliing 和 Active Warp</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#GPU%E6%A0%B8%E5%BF%83%E7%9A%84%E4%B9%B1%E5%BA%8F%E6%89%A7%E8%A1%8C%E5%92%8C%E4%BF%9D%E5%BA%8F"><span class="toc-number">2.2.5.</span> <span class="toc-text">GPU核心的乱序执行和保序</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%8C%AE"><span class="toc-number">3.</span> <span class="toc-text">参考文献</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/11/08/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%BA%8C-%E7%A1%AC%E4%BB%B6%E6%9E%B6%E6%9E%84/" title="深入理解GPU(二)硬件架构"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="深入理解GPU(二)硬件架构"/></a><div class="content"><a class="title" href="/2025/11/08/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%BA%8C-%E7%A1%AC%E4%BB%B6%E6%9E%B6%E6%9E%84/" title="深入理解GPU(二)硬件架构">深入理解GPU(二)硬件架构</a><time datetime="2025-11-08T13:33:45.000Z" title="发表于 2025-11-08 21:33:45">2025-11-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/" title="纹理压缩技术详解"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="纹理压缩技术详解"/></a><div class="content"><a class="title" href="/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/" title="纹理压缩技术详解">纹理压缩技术详解</a><time datetime="2025-10-23T14:26:01.000Z" title="发表于 2025-10-23 22:26:01">2025-10-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/10/14/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%80-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" title="深入理解GPU(一) 渲染管线"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="深入理解GPU(一) 渲染管线"/></a><div class="content"><a class="title" href="/2025/10/14/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%80-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" title="深入理解GPU(一) 渲染管线">深入理解GPU(一) 渲染管线</a><time datetime="2025-10-14T14:36:07.000Z" title="发表于 2025-10-14 22:36:07">2025-10-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/10/11/%E6%B8%B8%E6%88%8F%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="游戏性能优化"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="游戏性能优化"/></a><div class="content"><a class="title" href="/2025/10/11/%E6%B8%B8%E6%88%8F%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="游戏性能优化">游戏性能优化</a><time datetime="2025-10-11T12:55:56.000Z" title="发表于 2025-10-11 20:55:56">2025-10-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/10/09/%E5%AD%A6%E4%B9%A0%E8%B5%84%E6%BA%90%E6%B1%87%E6%80%BB/" title="学习资源汇总"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="学习资源汇总"/></a><div class="content"><a class="title" href="/2025/10/09/%E5%AD%A6%E4%B9%A0%E8%B5%84%E6%BA%90%E6%B1%87%E6%80%BB/" title="学习资源汇总">学习资源汇总</a><time datetime="2025-10-09T14:38:59.000Z" title="发表于 2025-10-09 22:38:59">2025-10-09</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/sky.jpg);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 By Haony Fang</span></div><div class="footer_custom_text">I wish you to become your own sun, no need to rely on who's light.<p><a target="_blank" href="https://hexo.io/"><img src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&logo=hexo" title="博客框架为Hexo"></a>&nbsp;<a target="_blank" href="https://butterfly.js.org/"><img src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&logo=bitdefender" title="主题采用butterfly"></a>&nbsp;<a target="_blank" href="https://www.jsdelivr.com/"><img src="https://img.shields.io/badge/CDN-jsDelivr-orange?style=flat&logo=jsDelivr" title="本站使用JsDelivr为静态资源提供CDN加速"></a> &nbsp;<a target="_blank" href="https://vercel.com/ "><img src="https://img.shields.io/badge/Hosted-Vervel-brightgreen?style=flat&logo=Vercel" title="本站采用双线部署，默认线路托管于Vercel"></a>&nbsp;<a target="_blank" href="https://vercel.com/ "><img src="https://img.shields.io/badge/Hosted-Coding-0cedbe?style=flat&logo=Codio" title="本站采用双线部署，联通线路托管于Coding"></a>&nbsp;<a target="_blank" href="https://github.com/"><img src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&logo=GitHub" title="本站项目由Gtihub托管"></a>&nbsp;<a target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&logo=Claris" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可"></a></p></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
