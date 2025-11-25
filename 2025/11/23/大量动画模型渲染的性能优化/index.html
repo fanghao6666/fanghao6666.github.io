@@ -1,0 +1,175 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>大量动画模型渲染的性能优化 | Haony's Site</title><meta name="author" content="Haony Fang"><meta name="copyright" content="Haony Fang"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="最近在对支持的项目组进行性能优化工作，其中遇到的大量动画角色同屏渲染的问题，经过一些调研和实践，正好就大量动画渲染性能优化技术进行一些讨论。 骨骼模型由骨骼数据加骨骼动画进行驱动，每一帧动画系统会计算出当前帧的骨骼的变换矩阵，然后通过蒙皮的方式来计算每一个顶点的实时位置，最后渲染系统会根据蒙皮之后的顶点数据进行渲染。具体蒙皮的计算方法，不同的蒙皮技术会有不同的时机和实现方式。 CPU SkinCP">
+<meta property="og:type" content="article">
+<meta property="og:title" content="大量动画模型渲染的性能优化">
+<meta property="og:url" content="http://haony.me/2025/11/23/%E5%A4%A7%E9%87%8F%E5%8A%A8%E7%94%BB%E6%A8%A1%E5%9E%8B%E6%B8%B2%E6%9F%93%E7%9A%84%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/index.html">
+<meta property="og:site_name" content="Haony&#39;s Site">
+<meta property="og:description" content="最近在对支持的项目组进行性能优化工作，其中遇到的大量动画角色同屏渲染的问题，经过一些调研和实践，正好就大量动画渲染性能优化技术进行一些讨论。 骨骼模型由骨骼数据加骨骼动画进行驱动，每一帧动画系统会计算出当前帧的骨骼的变换矩阵，然后通过蒙皮的方式来计算每一个顶点的实时位置，最后渲染系统会根据蒙皮之后的顶点数据进行渲染。具体蒙皮的计算方法，不同的蒙皮技术会有不同的时机和实现方式。 CPU SkinCP">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://haony.me/img/sky.jpg">
+<meta property="article:published_time" content="2025-11-23T13:41:37.000Z">
+<meta property="article:modified_time" content="2025-11-25T13:53:34.634Z">
+<meta property="article:author" content="Haony Fang">
+<meta property="article:tag" content="优化">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://haony.me/img/sky.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "大量动画模型渲染的性能优化",
+  "url": "http://haony.me/2025/11/23/%E5%A4%A7%E9%87%8F%E5%8A%A8%E7%94%BB%E6%A8%A1%E5%9E%8B%E6%B8%B2%E6%9F%93%E7%9A%84%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/",
+  "image": "http://haony.me/img/sky.jpg",
+  "datePublished": "2025-11-23T13:41:37.000Z",
+  "dateModified": "2025-11-25T13:53:34.634Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Haony Fang",
+      "url": "http://haony.me"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://haony.me/2025/11/23/%E5%A4%A7%E9%87%8F%E5%8A%A8%E7%94%BB%E6%A8%A1%E5%9E%8B%E6%B8%B2%E6%9F%93%E7%9A%84%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '大量动画模型渲染的性能优化',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/sky.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/haony.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">10</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 更多</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 图书</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/sky.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Haony's Site</span></a><a class="nav-page-title" href="/"><span class="site-name">大量动画模型渲染的性能优化</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 更多</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 图书</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">大量动画模型渲染的性能优化</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-11-23T13:41:37.000Z" title="发表于 2025-11-23 21:41:37">2025-11-23</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-11-25T13:53:34.634Z" title="更新于 2025-11-25 21:53:34">2025-11-25</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/">性能优化</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>最近在对支持的项目组进行性能优化工作，其中遇到的大量动画角色同屏渲染的问题，经过一些调研和实践，正好就大量动画渲染性能优化技术进行一些讨论。</p>
+<p>骨骼模型由骨骼数据加骨骼动画进行驱动，每一帧动画系统会计算出当前帧的骨骼的变换矩阵，然后通过蒙皮的方式来计算每一个顶点的实时位置，最后渲染系统会根据蒙皮之后的顶点数据进行渲染。具体蒙皮的计算方法，不同的蒙皮技术会有不同的时机和实现方式。</p>
+<h3 id="CPU-Skin"><a href="#CPU-Skin" class="headerlink" title="CPU Skin"></a>CPU Skin</h3><p>CPU蒙皮指在CPU端先计算好每个顶点的蒙皮位置，然后再将顶点数据发送到GPU端进行渲染，GPU端的顶点buffer里保存的是蒙皮后的顶点数据。我们知道CPU是<strong>擅长逻辑控制而不善于大量运算的</strong>，因此CPU蒙皮会严重的影响CPU性能，特别是场景中存在大量动画模型的时候，CPU基本会被动画更新，蒙皮计算和数据传输所占满，甚至会无法运行。</p>
+<h3 id="GPU-Skin"><a href="#GPU-Skin" class="headerlink" title="GPU Skin"></a>GPU Skin</h3><p>骨骼蒙皮会逐顶点进行计算，在顶点数量比较多的时候，总的运算量是非常大的，但是我们注意到，<strong>每个顶点的计算是相互独立的</strong>，也就是说他们是<strong>并行</strong>的。这种大量的并行计算，那天然就适合在GPU端进行。这种在GPU端进行蒙皮计算的就叫做<strong>GPU蒙皮</strong>。</p>
+<h4 id="VS-Skin"><a href="#VS-Skin" class="headerlink" title="VS Skin"></a>VS Skin</h4><p>GPU蒙皮最简单的实现就是VS蒙皮，也就是在Vertex Shader中进行蒙皮计算：每个顶点保存自己的骨骼索引和骨骼权重，更新当前帧的骨骼数据并绑定，然后在Vertex Shader读取对应的骨骼变换矩阵进行计算，最后输出蒙皮之后的顶点坐标。VS蒙皮的优点在于将繁重的计算从CPU端移到了GPU端，大大的减少了CPU端的性能压力，对于CPU Bound的场景尤为重要。但是这个计算压力并没有完全消失，而是转移到了GPU端，在Vertex Shader里进行蒙皮计算会增加GPU的运算量和带宽。特别是在多pass渲染的场景，每个pass的Vertex Shader都会进行一次全量重复的蒙皮计算，在移动端，带宽的增加往往会直接影响耗电，因此也是一个需要进行权衡考虑。</p>
+<h4 id="CS-Skin"><a href="#CS-Skin" class="headerlink" title="CS Skin"></a>CS Skin</h4><p>在Vertex Shader中进行蒙皮计算存在一个问题，就是在多个pass中，每个pass的VS都要进行蒙皮计算，并且每个vs的蒙皮计算都是相同的，因此存在重复计算，需要渲染的pass越多，重复计算就越多。为了减少这些重复计算，可以使用CS蒙皮，也就是在所有pass开始之前，使用Compute Shader进行蒙皮计算，将蒙皮计算的结果保存为VertexBuffer，用于后续的各个pass的渲染，这样不管后续的pass数量有多少，我们都只需要蒙皮一次。UE里使用Compute Shader进行Skin的方案叫做<a target="_blank" rel="noopener" href="https://forums.unrealengine.com/t/what-is-the-purpose-of-the-gpu-skin-cache/370993">GPUSkinCache</a>，Cache的意思实际就是提前计算蒙皮，然后缓存给后续的pass使用。CS蒙皮的好处是可以有效的减少重复的蒙皮计算，但是ComputeShader的Dispatch和计算并不是免费的，在动画模型数量较多的时候，Compute Shader的派发和计算都是需要消耗GPU时间的，而且会对整个管线造成阻塞。</p>
+<h4 id="VS-Skin-Instance"><a href="#VS-Skin-Instance" class="headerlink" title="VS Skin Instance"></a>VS Skin Instance</h4><p>场景中大量的动画模型不仅会增加蒙皮的计算，而且会显著增加DrawCall的数量。静态模型可以通过实例化渲染来减少DrawCall数量，但是不同的动画模型播放的动画帧不一定相同，因此不满足实例化的<strong>顶点数据相同</strong>的条件，无法直接进行合批渲染。</p>
+<p>那如何才能实现实例化渲染呢？我们观察到，动画模型的蒙皮是在初始的顶点数据上应用骨骼的Transform，这里每个动画模型顶点的蒙皮前的原始数据都是相同的，因此我们可以将动画所有帧的骨骼变换矩阵保存到一个大的buffer或者texture上，然后针对每个动画的Instance，给定一个骨骼变换的数据的Offset即可，在Vertex Shader阶段，每个顶点根据自身的骨骼索引和Offset获取当前的骨骼变换矩阵，然后进行蒙皮计算。因此我们只需要绑定初始的TPose的VertexBuffer和记录BoneMatrix的offset的InstanceBuffer即可实现动画模型的实例化渲染。</p>
+<h4 id="Vertex-Animation-Texture"><a href="#Vertex-Animation-Texture" class="headerlink" title="Vertex Animation Texture"></a>Vertex Animation Texture</h4><p>前面介绍的GPU蒙皮的方案都是将CPU端的蒙皮计算过程放到了GPU端来进行计算，而VAT(Vertex Animation Texture，顶点动画贴图)技术则是直接通过空间来换时间，在离线阶段将每一个动画帧的所有顶点位置都烘焙到一张贴图上，在运行时，给定动画帧索引，每个顶点可以直接在顶点动画贴图上采样得到当前的顶点位置，这样整个蒙皮过程只需要一次贴图采样即可，没有任何的计算过程，因此速度非常快。VAT技术的细节可以参考<a target="_blank" rel="noopener" href="https://stoyan3d.wordpress.com/2021/07/23/vertex-animation-texture-vat/">该文章</a>。</p>
+<p>前面说过,VAT实际上是通过<strong>空间来换取时间</strong>，相比较于存储骨骼矩阵，存储所有帧的顶点位置的数据量要大得多，特别是顶点数量远大于骨骼数量的场景。所以VAT适合那个网格相对简单的动画模型，比如场景中大量的NPC小兵或者怪物，这些动画模型的动画和几何都比较简单，占用的内存较少。</p>
+<p>另外以上的GPU Skin的动画模型都存在一个问题就是，当CPU端需要使用蒙皮之后的数据的时候（如射击游戏的射线检测），往往在CPU端还需要进行一次蒙皮计算，会产生额外的性能消耗。</p>
+<h4 id="CPU-Skin-Instance"><a href="#CPU-Skin-Instance" class="headerlink" title="CPU Skin Instance"></a>CPU Skin Instance</h4><p>在项目的游戏场景中，大量的动画模型并不会所有模型都是不同的动画状态，而是可以分为若干组，每个组的动画模型播放的动画和序列帧都是相同的，这种情况下，还有一种更加高效的优化方法，我称作为 <strong>“CPUSKinInstance”</strong>,具体是指：针对每个动画和序列中相同的动画模型组，可以在CPU端进行一次蒙皮操作，然后将蒙皮之后的模型作为实例化渲染的VertexBuffer，这样场景中所有N个动画模型只需要蒙皮M次（M为组的数量），可以同时节省CPU和GPU的开销。这种方案适合于N远大于M的场景（比如大几个数量级）。</p>
+<p>以上针对不同的动画模型渲染方法做了简单的介绍，每个方案各有优缺点，实际使用中需要针对具体的使用场景进行选择，还是那句话：<strong>没有最好的技术，只有最合适的技术</strong>。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="http://haony.me">Haony Fang</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="http://haony.me/2025/11/23/%E5%A4%A7%E9%87%8F%E5%8A%A8%E7%94%BB%E6%A8%A1%E5%9E%8B%E6%B8%B2%E6%9F%93%E7%9A%84%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/">http://haony.me/2025/11/23/%E5%A4%A7%E9%87%8F%E5%8A%A8%E7%94%BB%E6%A8%A1%E5%9E%8B%E6%B8%B2%E6%9F%93%E7%9A%84%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="http://haony.me" target="_blank">Haony's Site</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E4%BC%98%E5%8C%96/">优化</a></div><div class="post-share"><div class="social-share" data-image="/img/sky.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2025/11/13/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%89-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="深入理解GPU(三)性能优化"><img class="cover" src="/img/sky.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">深入理解GPU(三)性能优化</div></div><div class="info-2"><div class="info-item-1">前两章主要介绍了GPU的渲染管线和硬件架构，本文针对GPU的性能优化做一些简单的讨论。 DrawCall对于性能的影响GPU是工作在内核空间的，应用层跟GPU打交道是通过图形API和GPU的驱动来完成的，驱动的调用会有一个用户空间到内核空间的转换。以DX为例，用户程序在CPU端提交一个DrawCall, 数据的流程是：APP &gt; DX runtime &gt; User mode driver &gt; Dxgknl &gt; Kernel mode driver &gt; GPU，经过这一连串的调用，才能到达GPU，所有GPU之前的这些流程都是在GPU端执行的。所以DrawCall数量增加，增加的往往是CPU端的时间开销。这也就是为什么最新的现代图形API，如DX12，Vulkan等，都会将驱动层做薄的原因。而主机平台因为有特殊的驱动优化，因此CPU和GPU的交互性能开销是很低的，游戏性能也就更强。 DrawCall命令的开销并不是单纯的绘制命令本身，而在于DrawCall绑定的数据（Shader，Buffer,Texture）和渲染状态（Render State）设置的...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/10/11/%E6%B8%B8%E6%88%8F%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="游戏性能优化"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-10-11</div><div class="info-item-2">游戏性能优化</div></div><div class="info-2"><div class="info-item-1">最近在Youtube上看到一个很不错的讲游戏性能优化的系列视频，花了几个小时学习了一下。作者从游戏性能优化的准则，优化的方向做了较为详细的介绍，以及介绍了性能分析工具的使用，并结合Unity和Unreal的示例场景来实际分析和优化游戏性能。由于视频时长限制，很多方面讲解的不是很深入，这里对视频里印象较深的部分做一些总结，同时也作为性能分析的一个学习资源笔记，后续有时间可以针对各个方面进行更深一步的探索。 游戏优化准则谁来优化？ 游戏开发实际是策划，美术，程序等各个不同职能的人来共同完成的，那么对于游戏的优化而言，作者认为不是由某个人来完成，而是每个人都需要了解和参与。美术需要知道哪些能做，哪些不能做，哪些效果需要，哪些效果没那么重要。程序需要知道哪些可以做，哪些做不了，哪些可以做的更好。 游戏性能优化是一个非常大的课题，实际过程中不同的项目，由于美术资源，玩法，画面效果，以及设备平台的不同，甚至是引擎的不同，需要面对的优化问题可能都是不一样的，因此没有所谓的统一的优化方法，而是需要具体问题具体对待。 下面这句话是贯穿整个系列视频的指导准则 **先分析，再优化**  这句话听起来也...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/haony.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Haony Fang</div><div class="author-info-description">日拱一卒</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">10</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">6</div></a></div><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/fanghao6666" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:zutterhao@163.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#CPU-Skin"><span class="toc-number">1.</span> <span class="toc-text">CPU Skin</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#GPU-Skin"><span class="toc-number">2.</span> <span class="toc-text">GPU Skin</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#VS-Skin"><span class="toc-number">2.1.</span> <span class="toc-text">VS Skin</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#CS-Skin"><span class="toc-number">2.2.</span> <span class="toc-text">CS Skin</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#VS-Skin-Instance"><span class="toc-number">2.3.</span> <span class="toc-text">VS Skin Instance</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Vertex-Animation-Texture"><span class="toc-number">2.4.</span> <span class="toc-text">Vertex Animation Texture</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#CPU-Skin-Instance"><span class="toc-number">2.5.</span> <span class="toc-text">CPU Skin Instance</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2025/11/23/%E5%A4%A7%E9%87%8F%E5%8A%A8%E7%94%BB%E6%A8%A1%E5%9E%8B%E6%B8%B2%E6%9F%93%E7%9A%84%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="大量动画模型渲染的性能优化"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="大量动画模型渲染的性能优化"/></a><div class="content"><a class="title" href="/2025/11/23/%E5%A4%A7%E9%87%8F%E5%8A%A8%E7%94%BB%E6%A8%A1%E5%9E%8B%E6%B8%B2%E6%9F%93%E7%9A%84%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="大量动画模型渲染的性能优化">大量动画模型渲染的性能优化</a><time datetime="2025-11-23T13:41:37.000Z" title="发表于 2025-11-23 21:41:37">2025-11-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/11/13/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%89-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="深入理解GPU(三)性能优化"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="深入理解GPU(三)性能优化"/></a><div class="content"><a class="title" href="/2025/11/13/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%89-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="深入理解GPU(三)性能优化">深入理解GPU(三)性能优化</a><time datetime="2025-11-13T12:44:36.000Z" title="发表于 2025-11-13 20:44:36">2025-11-13</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/11/08/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%BA%8C-%E7%A1%AC%E4%BB%B6%E6%9E%B6%E6%9E%84/" title="深入理解GPU(二)硬件架构"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="深入理解GPU(二)硬件架构"/></a><div class="content"><a class="title" href="/2025/11/08/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%BA%8C-%E7%A1%AC%E4%BB%B6%E6%9E%B6%E6%9E%84/" title="深入理解GPU(二)硬件架构">深入理解GPU(二)硬件架构</a><time datetime="2025-11-08T13:33:45.000Z" title="发表于 2025-11-08 21:33:45">2025-11-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/" title="纹理压缩技术详解"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="纹理压缩技术详解"/></a><div class="content"><a class="title" href="/2025/10/23/%E7%BA%B9%E7%90%86%E5%8E%8B%E7%BC%A9%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3/" title="纹理压缩技术详解">纹理压缩技术详解</a><time datetime="2025-10-23T14:26:01.000Z" title="发表于 2025-10-23 22:26:01">2025-10-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/10/14/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%80-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" title="深入理解GPU(一) 渲染管线"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="深入理解GPU(一) 渲染管线"/></a><div class="content"><a class="title" href="/2025/10/14/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%80-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" title="深入理解GPU(一) 渲染管线">深入理解GPU(一) 渲染管线</a><time datetime="2025-10-14T14:36:07.000Z" title="发表于 2025-10-14 22:36:07">2025-10-14</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/sky.jpg);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 By Haony Fang</span></div><div class="footer_custom_text">I wish you to become your own sun, no need to rely on who's light.<p><a target="_blank" href="https://hexo.io/"><img src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&logo=hexo" title="博客框架为Hexo"></a>&nbsp;<a target="_blank" href="https://butterfly.js.org/"><img src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&logo=bitdefender" title="主题采用butterfly"></a>&nbsp;<a target="_blank" href="https://www.jsdelivr.com/"><img src="https://img.shields.io/badge/CDN-jsDelivr-orange?style=flat&logo=jsDelivr" title="本站使用JsDelivr为静态资源提供CDN加速"></a> &nbsp;<a target="_blank" href="https://vercel.com/ "><img src="https://img.shields.io/badge/Hosted-Vervel-brightgreen?style=flat&logo=Vercel" title="本站采用双线部署，默认线路托管于Vercel"></a>&nbsp;<a target="_blank" href="https://vercel.com/ "><img src="https://img.shields.io/badge/Hosted-Coding-0cedbe?style=flat&logo=Codio" title="本站采用双线部署，联通线路托管于Coding"></a>&nbsp;<a target="_blank" href="https://github.com/"><img src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&logo=GitHub" title="本站项目由Gtihub托管"></a>&nbsp;<a target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&logo=Claris" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可"></a></p></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
