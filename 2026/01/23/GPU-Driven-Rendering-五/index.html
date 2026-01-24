@@ -1,0 +1,193 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>GPU Driven Rendering (五) | Haony's Site</title><meta name="author" content="Haony Fang"><meta name="copyright" content="Haony Fang"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="本篇简单介绍下UE5的虚拟几何技术Nanite。UE5的Nanite是一款革命性虚拟几何体渲染系统，依托GPU驱动渲染技术与全新网格格式，打破传统多边形预算限制，实现像素级细节与海量模型的高效渲染，核心价值在于将几何渲染从“多边形数量约束”转向“像素细节驱动”。其通过分层聚类存储网格，导入时拆解为三角形组层级簇结构，支持连续LOD无离散跳变，同时高度压缩数据，仅按需流式加载可见细节，大幅降低显存">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GPU Driven Rendering (五)">
+<meta property="og:url" content="http://haony.me/2026/01/23/GPU-Driven-Rendering-%E4%BA%94/index.html">
+<meta property="og:site_name" content="Haony&#39;s Site">
+<meta property="og:description" content="本篇简单介绍下UE5的虚拟几何技术Nanite。UE5的Nanite是一款革命性虚拟几何体渲染系统，依托GPU驱动渲染技术与全新网格格式，打破传统多边形预算限制，实现像素级细节与海量模型的高效渲染，核心价值在于将几何渲染从“多边形数量约束”转向“像素细节驱动”。其通过分层聚类存储网格，导入时拆解为三角形组层级簇结构，支持连续LOD无离散跳变，同时高度压缩数据，仅按需流式加载可见细节，大幅降低显存">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://haony.me/img/sky.jpg">
+<meta property="article:published_time" content="2026-01-23T12:19:17.000Z">
+<meta property="article:modified_time" content="2026-01-24T02:27:10.198Z">
+<meta property="article:author" content="Haony Fang">
+<meta property="article:tag" content="技术">
+<meta property="article:tag" content="图形学">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://haony.me/img/sky.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "GPU Driven Rendering (五)",
+  "url": "http://haony.me/2026/01/23/GPU-Driven-Rendering-%E4%BA%94/",
+  "image": "http://haony.me/img/sky.jpg",
+  "datePublished": "2026-01-23T12:19:17.000Z",
+  "dateModified": "2026-01-24T02:27:10.198Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Haony Fang",
+      "url": "http://haony.me"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://haony.me/2026/01/23/GPU-Driven-Rendering-%E4%BA%94/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'GPU Driven Rendering (五)',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(/img/sky.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/haony.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">15</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 更多</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 图书</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/sky.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Haony's Site</span></a><a class="nav-page-title" href="/"><span class="site-name">GPU Driven Rendering (五)</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 更多</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/music/"><i class="fa-fw fas fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 电影</span></a></li><li><a class="site-page child" href="/gallery/"><i class="fa-fw fas fa-images"></i><span> 照片</span></a></li><li><a class="site-page child" href="/books/"><i class="fa-fw fas fa-book"></i><span> 图书</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">GPU Driven Rendering (五)</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-01-23T12:19:17.000Z" title="发表于 2026-01-23 20:19:17">2026-01-23</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-01-24T02:27:10.198Z" title="更新于 2026-01-24 10:27:10">2026-01-24</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/GPU-Driven-Rendering/">GPU Driven Rendering</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p><img src="/../images/gpudriven/97.png"></p>
+<p>本篇简单介绍下UE5的虚拟几何技术Nanite。UE5的Nanite是一款革命性虚拟几何体渲染系统，依托GPU驱动渲染技术与全新网格格式，打破传统多边形预算限制，实现像素级细节与海量模型的高效渲染，核心价值在于将几何渲染从“多边形数量约束”转向“像素细节驱动”。其通过分层聚类存储网格，导入时拆解为三角形组层级簇结构，支持连续LOD无离散跳变，同时高度压缩数据，仅按需流式加载可见细节，大幅降低显存开销。渲染阶段由GPU实时完成可见性剔除、LOD动态切换与光栅化，有效规避CPU瓶颈。</p>
+<p>网络上关于Nanite的介绍文章有很多，有些讲的非常的详细，甚至从源码级别介绍Nanite的相关优化技术，这里就主要对比下Nanite和之前文章介绍到的GPU Driven技术的一些区别和联系。</p>
+<p><img src="/../images/gpudriven/98.png"></p>
+<p>Nanite对于网格的处理和之前的方法类似，都是将原始的网格转换为一个个的cluster来表示，后续所有的culling，rendering都是基于cluster级别来进行。但是Nanite和之前的游戏所面临或者说面向的场景的三角形数量的量级是不一样的，Nanite场景中三角形能达到几亿，甚至几十亿，当三角形的数量达到这个规模之后，对于cluster的处理会带来非常大的挑战。</p>
+<p>首先是cluster的数量。一个cluster的三角形一般在64&#x2F;128&#x2F;256左右，这个数字是根据当前硬件平台的能力所计算得到的，所以数十亿的三角形划分得到的cluster数量能够达到几百万甚至上千万，在之前的算法中，GPU需要并行的处理每一个cluster，然后进行compact，最后发起drawcall。虽然现代GPU硬件能够支持大量的并发thread，但是如果并行处理几百万的cluster，这个耗时是不可接受的。</p>
+<p>其次是模型的LOD。由于原始模型本身的面数很高，如果制作LOD，那么LOD的层级数量也会比较多，因为如果LOD层级太少，那么相邻的LOD变化会非常大，切换就会影响视觉效果。而一旦LOD的数量增加，那么cluster的数量也会继续增加，会对culling pipeline产生更大的压力。</p>
+<p><img src="/../images/gpudriven/99.png"></p>
+<p>Nanite解决这个问题的方法是使用<strong>Hierarchy Cluster LOD</strong>。如上图所示，Hierarchy的思想是每一级别的LOD都是从上一个层级的LOD经过简化再分割得到的，每个层级之间的LOD形成一个树形结构。</p>
+<p><img src="/../images/gpudriven/100.png"></p>
+<p>具体的中间流程如上图所示，对于层级N的cluster，首先进行聚类形成clustergroup，然后将这个group内的cluster进行merge，然后再进行simplify，得到原始面片一半的三角形，然后将这些triangle再进行划分，得到层级N+1的clusters，这样便完成了cluster数量的减半。上述过程一直进行到只剩下一个cluster为止。为了不产生LOD的crack，这里cluster group在做simplify的时候是lock edge的。</p>
+<p><img src="/../images/gpudriven/101.png"></p>
+<p>上图直观的显示了跨层级的cluster划分的效果。</p>
+<p><img src="/../images/gpudriven/102.png"></p>
+<p>所以实际划分的结果是一个DAG，而不是一个tree，这是因为层级N+1的group里的cluster是层级N的groups里的所有cluster的父节点，子节点对应多个父节点，而不是tree中子节点只对应一个父节点。</p>
+<p><img src="/../images/gpudriven/103.png"></p>
+<p>runtime的时候，根据视角对整个DAG进行cut，即可得到当前视角下可见的clusters。这里回到了之前的问题，如此多的cluster，而且一个DAG的结构，该如何进行culling呢？</p>
+<p><img src="/../images/gpudriven/104.png"></p>
+<p>首先在建立cluster LOD的时候，就保证了相邻的LOD之间的cluster group需要使用相同的boundary，确保切换的时候没有缝隙。第二个是经过group之后再划分的clusters，需要<strong>共用相同的culling data，包括boundinginfo和error</strong>，这个保证了每个group的cluster要么全部cull，要么全部可见，不会产生重叠。</p>
+<p><img src="/../images/gpudriven/105.png"></p>
+<p>有了上述的保证，那么实际上对DAG的culling就非常简单，对于每个cluster，如果parent error不满足，自己的error满足，那么就可见（被选择）。反之，如果parent的error满足，那就直接使用parent就行，自己就不可见，如果parent的error不满足，自己的error也不满足，那么也不可见。所以可以看到，每个cluster只需要记录自身和parent的culling data，就可以决定自己是否可见，那么整个LOD selection就可以并行了。</p>
+<p><img src="/../images/gpudriven/106.png"></p>
+<p><img src="/../images/gpudriven/107.png"></p>
+<p>当然，如此多数量的cluster并行处理性能消耗还是非常大的，所以Nanite的处理方式是使用原来的树状层级结构，对LOD cluster group建立BVH结构进行加速处理。在最开始的Nanite版本中，介绍的是使用Persistent thread来进行culling，所谓的persistent thread就是开辟一个类似thread pool，然后使用生产-消费的模式，从BVH的顶层开始，逐层级的进行culling，每一个层级的节点如果当前不可见，那么就将其子节点输出到队列中，等待下一轮处理，直到所有的任务都处理完毕。在最新的UE5.7中，Nanite已经默认不使用persistent thread，而是采用每个层级dispatch一次进行culling thread进行处理，具体这么做的原因还不清楚。</p>
+<p><img src="/../images/gpudriven/108.png"></p>
+<p>Nanite的rendering的整个流程，包括VisibilityBuffer, Deferred Materials，Software Rasterization等相关技术在本篇文章就不详细介绍。Nanite中的工程优化思路与细节有很多，值得自己的学习和探索，后续打算专门出一系列的文章，结合Nanite的源码进行详细的解读。</p>
+<h2 id="参考文献"><a href="#参考文献" class="headerlink" title="参考文献"></a>参考文献</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://dev.epicgames.com/documentation/zh-cn/unreal-engine/nanite-virtualized-geometry-in-unreal-engine">https://dev.epicgames.com/documentation/zh-cn/unreal-engine/nanite-virtualized-geometry-in-unreal-engine</a></li>
+<li><a target="_blank" rel="noopener" href="https://advances.realtimerendering.com/s2021/Karis_Nanite_SIGGRAPH_Advances_2021_final.pdf">https://advances.realtimerendering.com/s2021/Karis_Nanite_SIGGRAPH_Advances_2021_final.pdf</a></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="http://haony.me">Haony Fang</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="http://haony.me/2026/01/23/GPU-Driven-Rendering-%E4%BA%94/">http://haony.me/2026/01/23/GPU-Driven-Rendering-%E4%BA%94/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="http://haony.me" target="_blank">Haony's Site</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%8A%80%E6%9C%AF/">技术</a><a class="post-meta__tags" href="/tags/%E5%9B%BE%E5%BD%A2%E5%AD%A6/">图形学</a></div><div class="post-share"><div class="social-share" data-image="/img/sky.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2026/01/18/GPU-Driven-Rendering-%E5%9B%9B/" title="GPU Driven Rendering (四)"><img class="cover" src="/img/sky.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">GPU Driven Rendering (四)</div></div><div class="info-2"><div class="info-item-1"> 【SIGGRAPH 2021】Geometry Rendering Pipeline Architecture这篇文章是动视暴雪在2021年的分享，主要介绍引擎处理场景中大量复杂的geometry的渲染，提出了一套geometry processing pipeline。  从小场景转向开放世界后，场景中需要处理的三角形数量大幅度增加，达到800多万，这意味在引擎和目标平台不变的情况下，三角形的数量翻了整整十倍。场景中不仅模型数量众多，而且网格mesh的密度也很大。  动视旗下的游戏拥有多款经过优化的不同的渲染引擎，支持包括Forward+(F+), Deferred, Visibility+(V+)等渲染管线。  Forward+ : 着色在几何绘制阶段完成，所有顶点的数据从VS阶段直接传递到PS阶段，并由PS着色器完成着色计算。 Deferred : 着色分为两个阶段，在GBUFFER阶段执行vs-ps管线，生成BRDF所需要的所有的参数并保存为GBuffer Texture；然后是计算着色阶段，读取GBUFFER完成统一的着色计算。 Visibility+: 将几何于着色...</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2026/01/16/GPU-Driven-Rendering-%E4%B8%89/" title="GPU Driven Rendering (三)"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-16</div><div class="info-item-2">GPU Driven Rendering (三)</div></div><div class="info-2"><div class="info-item-1"> 【GDC 2019】GPU Driven Rendering and Virtual Texturing in Trials Rising这篇文章是育碧在GDC2019上的一篇演讲，主要介绍《Trials Rising》中的GUP Driven Rendering技术。  这是一款UGC的游戏，游戏场景由大量的macro block组成，场景的几何复杂度很高。而且由于是UGC，所以不同的关卡的复杂度是不一样的，而且差别可能会比较大。  目前的引擎遇到的问题是，首先场景中存在大量的可见的instance，大概有2500左右。有两个CPU的核心在为rendering服务（包括收集可见信息和发起draw command），所以CPU存在巨大的瓶颈，而且在CPU平台没有Occlusion Culling。  因此需要GPU Driven Rendering, 在GDR下，将可见性测试移动到GPU上，而且GPU上可以直接使用Culling之后的结果，可以直接在GPU上进行Batch，将不同mesh的不同instance merge到一起。在GPU端可以感知整个scene的状态（而不只是知...</div></div></div></a><a class="pagination-related" href="/2026/01/11/GPU-Driven-Rendering-%E4%B8%80/" title="GPU Driven Rendering (一)"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-11</div><div class="info-item-2">GPU Driven Rendering (一)</div></div><div class="info-2"><div class="info-item-1"> GPU Driven Rendering(GPU驱动渲染)是一种现代实时的渲染架构，其核心思想是将渲染流程的控制权从CPU转移到GPU，把原本在CPU上执行的关键任务（如几何裁剪，视锥剔除，遮挡剔除，DrawCall的生成）转移到GPU端，让GPU使用Compute Shader或Mesh Shader来完成，让GPU自主决定渲染哪些内容以及如何进行渲染，从而大幅减少CPU与GPU之间的数据传输和交互开销，充分发挥现代GPU的并行计算能力。 【SIGGRAPH 2015】GPU-Driven Rendering Pipelines 上图为《刺客信条大革命》游戏中育碧提出的GPU Driven Rendering Pipeline,其中蓝色部分为CPU侧的工作内容，而红色部分为GPU侧的工作内容。 Coarse Frustum Culling 这个步骤主要是CPU端进行Instance的Culling，场景会被组织成为四叉树，八叉树或者BVH，然后可以利用这些加速结构对场景中的Instance进行快速的剔除，同时在CPU端对每个Instance的数据根据LOD,Material等...</div></div></div></a><a class="pagination-related" href="/2026/01/18/GPU-Driven-Rendering-%E5%9B%9B/" title="GPU Driven Rendering (四)"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-18</div><div class="info-item-2">GPU Driven Rendering (四)</div></div><div class="info-2"><div class="info-item-1"> 【SIGGRAPH 2021】Geometry Rendering Pipeline Architecture这篇文章是动视暴雪在2021年的分享，主要介绍引擎处理场景中大量复杂的geometry的渲染，提出了一套geometry processing pipeline。  从小场景转向开放世界后，场景中需要处理的三角形数量大幅度增加，达到800多万，这意味在引擎和目标平台不变的情况下，三角形的数量翻了整整十倍。场景中不仅模型数量众多，而且网格mesh的密度也很大。  动视旗下的游戏拥有多款经过优化的不同的渲染引擎，支持包括Forward+(F+), Deferred, Visibility+(V+)等渲染管线。  Forward+ : 着色在几何绘制阶段完成，所有顶点的数据从VS阶段直接传递到PS阶段，并由PS着色器完成着色计算。 Deferred : 着色分为两个阶段，在GBUFFER阶段执行vs-ps管线，生成BRDF所需要的所有的参数并保存为GBuffer Texture；然后是计算着色阶段，读取GBUFFER完成统一的着色计算。 Visibility+: 将几何于着色...</div></div></div></a><a class="pagination-related" href="/2026/01/11/GPU-Driven-Rendering-%E4%BA%8C/" title="GPU Driven Rendering(二)"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-01-11</div><div class="info-item-2">GPU Driven Rendering(二)</div></div><div class="info-2"><div class="info-item-1"> 【GDC 2016】Optimizing the Graphics Pipeline with Compute这篇文章是寒霜引擎在GDC2016上的分享，主要介绍了他们的GPU Driven的思路，与上一篇育碧的内容有部分相似之处，接下来详细介绍下。  在DX12的新API上可以支持海量的DrawCall，极大的提高了CPU的性能，带来CPU的low overhead，但是GPU端仍然会卡在tiny draw call上，主要是因为场景中远处的细小细节的物体会被Hi-Z Cull,从GPU性能分析图中可以看到后半段，大部分只有VS计算，而没有PS计算，这样就会导致VS和PS的分配不均，造成性能的浪费。  大部分的引擎在CPU端最粗粒度的culling，然后在GPU上做refine，由于CPU和GPU之间存在延迟，因此很多这类的优化并不合适，因为需要二者严格的同步执行。在主机上CPU的资源本来就有限，因此让一个核心来做这个事情的性价比并不高。在PC端由于需要通过PCIE总线进行数据传输，这种方式的代价会更高。因此，希望剔除操作能够适配GPU的执行节奏，所以采用的方案是基于GPGP...</div></div></div></a><a class="pagination-related" href="/2025/11/13/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%89-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" title="深入理解GPU(三)性能优化"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-11-13</div><div class="info-item-2">深入理解GPU(三)性能优化</div></div><div class="info-2"><div class="info-item-1">前两章主要介绍了GPU的渲染管线和硬件架构，本文针对GPU的性能优化做一些简单的讨论。 DrawCall对于性能的影响GPU是工作在内核空间的，应用层跟GPU打交道是通过图形API和GPU的驱动来完成的，驱动的调用会有一个用户空间到内核空间的转换。以DX为例，用户程序在CPU端提交一个DrawCall, 数据的流程是：APP &gt; DX runtime &gt; User mode driver &gt; Dxgknl &gt; Kernel mode driver &gt; GPU，经过这一连串的调用，才能到达GPU，所有GPU之前的这些流程都是在GPU端执行的。所以DrawCall数量增加，增加的往往是CPU端的时间开销。这也就是为什么最新的现代图形API，如DX12，Vulkan等，都会将驱动层做薄的原因。而主机平台因为有特殊的驱动优化，因此CPU和GPU的交互性能开销是很低的，游戏性能也就更强。 DrawCall命令的开销并不是单纯的绘制命令本身，而在于DrawCall绑定的数据（Shader，Buffer,Texture）和渲染状态（Render State）设置的...</div></div></div></a><a class="pagination-related" href="/2025/10/14/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3GPU-%E4%B8%80-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" title="深入理解GPU(一) 渲染管线"><img class="cover" src="/img/sky.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-10-14</div><div class="info-item-2">深入理解GPU(一) 渲染管线</div></div><div class="info-2"><div class="info-item-1"> 使用一个东西，却不明白它的道理，并不高明.  做图形学最重要的就是跟GPU打交道，利用GPU来实现各种效果。但是之前一直只停留在比较上层的使用上，对于GPU的底层和硬件架构知之甚少。借用侯捷老师的一句话“使用一个东西，却不明白它的道理，并不高明”。于是便花了些时间深入学习了GPU的相关知识，做些记录。 腾讯技术工程的官方号上有一篇详细介绍GPU的文章：《GPU 渲染管线和硬件架构浅谈》,总结的非常全面，反复看了好多遍，也是本篇文章的主要参考资料。知乎平台上讲解NVIDIA GPU架构的系列文章非常详细的介绍了各代架构的GPU及其硬件架构，非常值得一读。 RTR4开篇第一二章的内容就是介绍的GPU硬件架构和渲染管线，这里我们也按照这个顺序：  第一篇将主要介绍图形学中的GPU渲染管线，包括桌面端和移动端； 第二章主要介绍GPU的硬件架构； 第三章主要介绍GPU编程和优化方法相关。  GPU渲染管线所谓的GPU渲染管线，就是有一堆的模型数据（点，线，三角形等），经过GPU端的一系列的流水线处理，最终得到屏幕上的二维图像的流程。跟工业生产的流水线一样，GPU的管线各个部分也是并行处理...</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/haony.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">Haony Fang</div><div class="author-info-description">日拱一卒</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">15</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">9</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">7</div></a></div><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/fanghao6666" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a><a class="social-icon" href="mailto:zutterhao@163.com" target="_blank" title="Email"><i class="fas fa-envelope" style="color: #4a7dbe;"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%8C%AE"><span class="toc-number">1.</span> <span class="toc-text">参考文献</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/23/GPU-Driven-Rendering-%E4%BA%94/" title="GPU Driven Rendering (五)"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GPU Driven Rendering (五)"/></a><div class="content"><a class="title" href="/2026/01/23/GPU-Driven-Rendering-%E4%BA%94/" title="GPU Driven Rendering (五)">GPU Driven Rendering (五)</a><time datetime="2026-01-23T12:19:17.000Z" title="发表于 2026-01-23 20:19:17">2026-01-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/18/GPU-Driven-Rendering-%E5%9B%9B/" title="GPU Driven Rendering (四)"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GPU Driven Rendering (四)"/></a><div class="content"><a class="title" href="/2026/01/18/GPU-Driven-Rendering-%E5%9B%9B/" title="GPU Driven Rendering (四)">GPU Driven Rendering (四)</a><time datetime="2026-01-18T11:28:58.000Z" title="发表于 2026-01-18 19:28:58">2026-01-18</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/16/GPU-Driven-Rendering-%E4%B8%89/" title="GPU Driven Rendering (三)"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GPU Driven Rendering (三)"/></a><div class="content"><a class="title" href="/2026/01/16/GPU-Driven-Rendering-%E4%B8%89/" title="GPU Driven Rendering (三)">GPU Driven Rendering (三)</a><time datetime="2026-01-16T14:51:58.000Z" title="发表于 2026-01-16 22:51:58">2026-01-16</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/GPU-Driven-Rendering-%E4%BA%8C/" title="GPU Driven Rendering(二)"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GPU Driven Rendering(二)"/></a><div class="content"><a class="title" href="/2026/01/11/GPU-Driven-Rendering-%E4%BA%8C/" title="GPU Driven Rendering(二)">GPU Driven Rendering(二)</a><time datetime="2026-01-11T14:24:04.000Z" title="发表于 2026-01-11 22:24:04">2026-01-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2026/01/11/GPU-Driven-Rendering-%E4%B8%80/" title="GPU Driven Rendering (一)"><img src="/img/sky.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="GPU Driven Rendering (一)"/></a><div class="content"><a class="title" href="/2026/01/11/GPU-Driven-Rendering-%E4%B8%80/" title="GPU Driven Rendering (一)">GPU Driven Rendering (一)</a><time datetime="2026-01-11T02:16:41.000Z" title="发表于 2026-01-11 10:16:41">2026-01-11</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/sky.jpg);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By Haony Fang</span></div><div class="footer_custom_text">I wish you to become your own sun, no need to rely on who's light.<p><a target="_blank" href="https://hexo.io/"><img src="https://img.shields.io/badge/Frame-Hexo-blue?style=flat&logo=hexo" title="博客框架为Hexo"></a>&nbsp;<a target="_blank" href="https://butterfly.js.org/"><img src="https://img.shields.io/badge/Theme-Butterfly-6513df?style=flat&logo=bitdefender" title="主题采用butterfly"></a>&nbsp;<a target="_blank" href="https://www.jsdelivr.com/"><img src="https://img.shields.io/badge/CDN-jsDelivr-orange?style=flat&logo=jsDelivr" title="本站使用JsDelivr为静态资源提供CDN加速"></a> &nbsp;<a target="_blank" href="https://vercel.com/ "><img src="https://img.shields.io/badge/Hosted-Vervel-brightgreen?style=flat&logo=Vercel" title="本站采用双线部署，默认线路托管于Vercel"></a>&nbsp;<a target="_blank" href="https://vercel.com/ "><img src="https://img.shields.io/badge/Hosted-Coding-0cedbe?style=flat&logo=Codio" title="本站采用双线部署，联通线路托管于Coding"></a>&nbsp;<a target="_blank" href="https://github.com/"><img src="https://img.shields.io/badge/Source-Github-d021d6?style=flat&logo=GitHub" title="本站项目由Gtihub托管"></a>&nbsp;<a target="_blank" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img src="https://img.shields.io/badge/Copyright-BY--NC--SA%204.0-d42328?style=flat&logo=Claris" title="本站采用知识共享署名-非商业性使用-相同方式共享4.0国际许可协议进行许可"></a></p></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
